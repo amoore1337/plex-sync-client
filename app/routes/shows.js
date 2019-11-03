@@ -1,8 +1,9 @@
 const { wrapAsync } = require('../services/router.service');
-const { getExistingTvShowsMap } = require('../services/file.service');
+const { getShows } = require('../services/manager-comm.service');
 
 module.exports = (router) => {
   router.get('/', wrapAsync(async (_, res) => {
-    res.json(getExistingTvShowsMap());
+    const shows = await getShows();
+    res.json(shows);
   }));
 };

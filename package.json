@@ -3,16 +3,13 @@
   "version": "0.0.1",
   "description": "A Plex library sync manager",
   "scripts": {
-    "start": "pm2 start index-internal.js index-external.js && pm2 log",
-    "stop": "pm2 stop all",
-    "stat": "pm2 status",
-    "start:internal": "nodemon index-internal.js",
-    "start:external": "nodemon index-external.js",
+    "start": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "axios": "^0.19.0",
     "bluebird": "^3.5.5",
     "body-parser": "^1.19.0",
     "change-case": "^3.1.0",
@@ -23,7 +20,6 @@
     "express": "^4.17.1",
     "express-winston": "^3.2.0",
     "fs": "0.0.1-security",
-    "https": "^1.0.0",
     "nconf": "^0.10.0",
     "nodemon": "^1.19.1",
     "pem": "^1.14.2",

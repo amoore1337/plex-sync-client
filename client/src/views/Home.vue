@@ -1,62 +1,86 @@
 <template>
-  <div class="fill-height home-container">
-    <v-sheet class="fill-height side-menu" elevation="5">
-      <label>Plex Cache Manager</label>
+  <div class="home-container">
+    <v-sheet class="side-menu" elevation="5">
+      <h1>Plex Cache Manager</h1>
     </v-sheet>
-    <v-container fluid fill-height>
-      <v-layout>
-        <v-flex xs12>
-          <v-sheet elevation="5" class="fill-height chip-container">
-            <!-- <form @submit.prevent="onSubmit" style="display: flex">
-              <v-text-field v-model="clientIp" label="Client IP" required></v-text-field>
-              <v-btn style="top: -6px" type="submit">Submit</v-btn>
-            </form> -->
-            TODO: Settings for configuring a new client...
-          </v-sheet>
-        </v-flex>
-      </v-layout>
-    </v-container>
+    <div class="grid-container">
+      <div class="grid-controls">
+        <content-toggle></content-toggle>
+      </div>
+      <tv-grid v-bind:tvShows="tvShows" v-bind:loading="loadingContent"  v-if="contentType === 'tv'"></tv-grid>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
+import { Component, Vue, Watch } from 'vue-property-decorator';
+import ContentToggle from '@/components/ContentToggle.vue';
+import TvGrid from '@/components/TvGrid.vue';
 import axios from 'axios';
 
 @Component({
-  components: {},
+  components: {
+    ContentToggle,
+    TvGrid,
+  },
 })
 export default class Home extends Vue {
+  private contentType = '';
   private clientIp = '';
+  private tvShows = [] as any[];
+  private loadingContent = true;
 
-  private onSubmit() {
-    axios.post('/api/test/send', { clientIp: this.clientIp }).then((res: any) => {
-      console.log('success!', res);
-    });
+  private mounted() {
+    this.loadShows();
+    this.updateGridDisplay();
+  }
+
+  @Watch('$route.query.type')
+  private updateGridDisplay() {
+    this.contentType = this.$route.query.type as string;
+  }
+
+  private loadShows() {
+    if (this.tvShows.length) { return; }
+    this.loadingContent = true;
+    axios.get('/api/shows').then((res: any) => {
+      this.tvShows = res.data;
+      this.loadingContent = false;
+    }).catch(() => this.loadingContent = false);
   }
 }
 </script>
 <style scoped lang="scss">
 .home-container {
   display: flex;
+  flex-direction: column;
+
+  h1 {
+    font-size: 1.3rem;
+  }
 
   .side-menu {
-    width: 15%;
-    min-width: 300px;
-    padding: 20px;
+    display: flex;
+    height: 80px;
+    width: 100%;
+    padding: 0 20px;
+    align-items: center;
+    z-index: 10;
   }
 }
 
-.chip-container {
+.grid-container {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  max-height: 675px;
-  min-height: 375px;
+  flex-direction: column;
+  width: 100%;
+  max-height: calc(100vh - 85px);
+  overflow: auto;
+  align-items: flex-start;
+  padding: 0 20px 20px 20px;
+  background-color: white;
 
-  form {
-    display: flex;
-    align-items: baseline;
+  .grid-controls {
+    width: 100%;
   }
 }
 </style>

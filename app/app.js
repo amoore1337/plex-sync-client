@@ -3,9 +3,10 @@ const bodyParser = require('body-parser');
 const config = require('nconf');
 const logger = require('winston');
 const expressWinston = require('express-winston');
-const https = require('https');
 
 let app;
+
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 module.exports = (callback) => {
   app = express();
@@ -42,14 +43,9 @@ module.exports = (callback) => {
     next(err);
   });
 
-  const NODE_PORT = config.get('NODE_PORT_EXTERNAL') || 1338;
+  const NODE_PORT = config.get('NODE_PORT_INTERNAL') || 1337;
 
-  const sslOptions = {
-    key: global.KEY,
-    cert: global.CERT
-  };
-
-  https.createServer(sslOptions, app).listen(NODE_PORT, () => {
+  app.listen(NODE_PORT, () => {
     logger.info('[SERVER] Listening on port ' + NODE_PORT);
     if (callback) { return callback(); }
   });

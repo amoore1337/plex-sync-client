@@ -14,5 +14,15 @@ module.exports = {
         styles: resolvePath('./src/styles')
       }
     }
+  },
+  css: {
+    loaderOptions: {
+      scss: {
+        data: `
+          @import "@/styles/global.scss";
+          @import "@/styles/colors.scss";
+        `
+      }
+    }
   }
 }
