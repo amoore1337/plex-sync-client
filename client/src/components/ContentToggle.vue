@@ -1,7 +1,7 @@
 <template>
   <v-radio-group v-model="contentType" row @change="updateRoute">
       <v-radio label="TV Shows" value="tv"></v-radio>
-      <v-radio label="Movies" value="movie"></v-radio>
+      <v-radio label="Movies" value="movies"></v-radio>
     </v-radio-group>
 </template>
 
@@ -14,7 +14,7 @@ export default class ContentToggle extends Vue {
 
   private mounted() {
     const selectedType = this.$route.query.type as string;
-    if (selectedType && ['tv', 'movie'].indexOf(selectedType)) {
+    if (selectedType && ['tv', 'movies'].indexOf(selectedType)) {
       this.contentType = selectedType;
     }
     this.updateRoute();

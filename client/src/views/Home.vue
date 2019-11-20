@@ -7,7 +7,8 @@
       <div class="grid-controls">
         <content-toggle></content-toggle>
       </div>
-      <tv-grid v-bind:tvShows="tvShows" v-bind:loading="loadingContent"  v-if="contentType === 'tv'"></tv-grid>
+      <tv-grid v-bind:tvShows="content.tv" v-bind:loading="loadingContent"  v-if="contentType === 'tv'"></tv-grid>
+      <movies-grid v-bind:movies="content.movies" v-bind:loading="loadingContent"  v-else></movies-grid>
     </div>
   </div>
 </template>
@@ -16,38 +17,42 @@
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import ContentToggle from '@/components/ContentToggle.vue';
 import TvGrid from '@/components/TvGrid.vue';
+import MoviesGrid from '@/components/MoviesGrid.vue';
 import axios from 'axios';
 
 @Component({
   components: {
     ContentToggle,
     TvGrid,
+    MoviesGrid,
   },
 })
 export default class Home extends Vue {
   private contentType = '';
-  private clientIp = '';
-  private tvShows = [] as any[];
+  private content: { [key: string]: any[] } = { tv: [], movies: [] };
   private loadingContent = true;
 
   private mounted() {
-    this.loadShows();
     this.updateGridDisplay();
   }
 
   @Watch('$route.query.type')
   private updateGridDisplay() {
     this.contentType = this.$route.query.type as string;
+    this.loadContent();
   }
 
-  private loadShows() {
-    if (this.tvShows.length) { return; }
-    this.loadingContent = true;
-    axios.get('/api/shows').then((res: any) => {
-      this.tvShows = res.data;
-      this.loadingContent = false;
-    }).catch(() => this.loadingContent = false);
+  private loadContent() {
+    const routeMap: {[key: string]: string} = { tv: 'shows', movies: 'movies' };
+    if (!this.content[this.contentType].length) {
+      this.loadingContent = true;
+      return axios.get(`/api/${routeMap[this.contentType]}`).then((res: any) => {
+        this.content[this.contentType] = res.data;
+        this.loadingContent = false;
+      }).catch(() => this.loadingContent = false);
+    }
   }
+
 }
 </script>
 <style scoped lang="scss">

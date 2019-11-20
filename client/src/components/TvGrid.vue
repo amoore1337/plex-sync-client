@@ -1,66 +1,56 @@
 <template>
-  <div class="tv-grid">
-    <div class="header row">
-      <div class="label flex-40">Name</div>
-      <div class="label flex-20">Seasons</div>
-      <div class="label flex-30">Size</div>
-      <div class="label flex-10">Download</div>
-    </div>
-    <div v-if="!this.loading">
-      <div class="row" v-for="show in tvShows" v-bind:key="show.name">
-        <div class="flex-40">{{show.name}}</div>
-        <div class="flex-20">{{show.children.length}}</div>
-        <div class="flex-30">{{show.size | numFormat('0.0b') }}</div>
-        <div class="flex-10"></div>
-      </div>
-    </div>
-    <div v-if="loading" class="row bold">Loading...</div>
-    <!-- <div v-if="!loading && !tvShows.length" class="row bold">No data...</div> -->
-  </div>
+  <grid class="tv-grid" :headers="gridHeaders" :selectable="true" :allow-expand="true">
+    <grid-row v-for="show in sortedShows" v-bind:key="show.name">
+      <td :style="{flex: 40}">{{show.name}}</td>
+      <td :style="{flex: 20}">{{show.children.length}}</td>
+      <td :style="{flex: 20}">{{show.size | numFormat('0.0b') }}</td>
+      <td :style="{flex: 20}">
+        <download-indicator :status="'completed'" :downloadable="true"></download-indicator>
+      </td>
+      <template v-slot:expanded>
+        <div>I'm expanded!!</div>
+      </template>
+    </grid-row>
+  </grid>
 </template>
 
 <script lang="ts">
+import Grid from './grid/Grid.vue';
+import { IGridHeader } from './grid/Grid.vue';
+import GridRow from './grid/GridRow.vue';
+import DownloadIndicator from './DownloadIndicator.vue';
 import { Component, Prop, Vue } from 'vue-property-decorator';
+import { orderBy } from 'lodash';
 
-@Component
+interface ISortCol {
+  value: string;
+  direction: 'desc' | 'asc';
+}
+
+@Component({
+  components: {
+    Grid,
+    GridRow,
+    DownloadIndicator,
+  },
+})
 export default class TvGrid extends Vue {
   @Prop() private tvShows!: any[];
-  @Prop() private loading = true;
+  @Prop() private loading!: boolean;
 
-  private mounted() {
+  private sortCol: ISortCol = { value: 'name', direction: 'asc' };
+  private gridHeaders: IGridHeader[] = [
+    { label: 'Name', sortable: true, size: 40 },
+    { label: 'Seasons', sortable: true, size: 20 },
+    { label: 'Size', sortable: true, size: 20 },
+    { label: 'Download Status', sortable: true, size: 20 },
+  ];
 
+  private get sortedShows() {
+    return orderBy(this.tvShows, this.sortCol.value, this.sortCol.direction);
   }
 }
 </script>
 
 <style scoped lang="scss">
-  .tv-grid {
-    border: 1px solid $light-gray-1;
-    border-radius: 8px;
-    width: 100%;
-    padding: 0;
-    position: relative;
-
-    .row {
-      height: 60px;
-      width: 100%;
-      margin: 0;
-      padding: 0 20px;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      border-bottom: 1px solid $light-gray-2;
-
-      &:last-child { border-bottom: none; }
-
-      &.header { border-color: $light-gray-1; }
-
-      // this is dumb but i'll figure out something better later
-      .flex-60 { flex: 60; }
-      .flex-40 { flex: 40; }
-      .flex-30 { flex: 30; }
-      .flex-20 { flex: 20; }
-      .flex-10 { flex: 10; }
-    }
-  }
 </style>
