@@ -1,14 +1,16 @@
 <template>
-  <tr class="grid-row" @click="toggleExpanded">
-    <div class="row-values">
+  <tr :class="['grid-row', { selectable, expanded }]">
+    <div class="row-values" @click="toggleExpanded">
       <td v-if="isExpandable" class="expand-control">
         <div v-if="!expandableOffset" :class="{ caret: true, collapse: this.expanded }"></div>
       </td>
       <slot></slot>
     </div>
-    <div class="row-expanded">
-      <slot v-if="expanded" name="expanded"></slot>
-    </div>
+    <v-expand-transition>
+      <div v-show="expanded" class="row-expanded">
+        <slot name="expanded"></slot>
+      </div>
+    </v-expand-transition>
   </tr>
 </template>
 
@@ -18,6 +20,7 @@ import { Component, Prop, Vue } from 'vue-property-decorator';
 @Component
 export default class GridRow extends Vue {
   @Prop() private expandableOffset!: boolean;
+  @Prop() private selectable!: boolean;
 
   private expanded = false;
 
@@ -38,6 +41,20 @@ export default class GridRow extends Vue {
     display: flex;
     flex-direction: column;
     align-items: center;
+    box-sizing: border-box;
+
+    &.selectable {
+      &:hover {
+        .row-values {
+          cursor: pointer;
+          background-color: $light-gray-4;
+        }
+      }
+    }
+
+    &.expanded {
+      border: 2px solid $light-blue-lighten-1 !important;
+    }
 
     .row-values {
       display: flex;
@@ -45,6 +62,12 @@ export default class GridRow extends Vue {
       width: 100%;
       height: 60px;
       align-items: center;
+      padding: 0 20px;
+    }
+
+    .row-expanded {
+      width: 100%;
+      padding: 0 50px;
     }
 
     .expand-control {

@@ -5,7 +5,7 @@
         {{ header.label }}
       </th>
     </grid-row>
-    <div class="grid-body" :class="{selectable: selectable}">
+    <div class="grid-body">
       <slot></slot>
     </div>
   </table>
@@ -28,7 +28,6 @@ export interface IGridHeader {
 })
 export default class Grid extends Vue {
   @Prop() private allowExpand!: boolean;
-  @Prop() private selectable!: boolean;
   @Prop() private headers!: IGridHeader[];
 }
 </script>
@@ -43,7 +42,6 @@ export default class Grid extends Vue {
     border-spacing: 0;
 
     .grid-row {
-      padding: 0 20px;
       border-bottom: 1px solid $light-gray-1;
 
       &:last-child {
@@ -58,15 +56,5 @@ export default class Grid extends Vue {
         }
       }
     }
-
-    .selectable {
-      .grid-row {
-        cursor: pointer;
-        &:hover {
-          background-color: $light-gray-4;
-        }
-      }
-    }
-
   }
 </style>
