@@ -18,11 +18,11 @@
 </template>
 
 <script lang="ts">
-import Grid from './grid/Grid.vue';
-import { IGridHeader } from './grid/Grid.vue';
-import GridRow from './grid/GridRow.vue';
-import DownloadIndicator from './DownloadIndicator.vue';
-import TvSeasonChip from './TvSeasonChip.vue';
+import Grid from '@/components/grid/Grid.vue';
+import { IGridHeader } from '../grid/Grid.vue'; // Have to use relative path for types to work...
+import GridRow from '@/components/grid/GridRow.vue';
+import DownloadIndicator from '@/components/DownloadIndicator.vue';
+import TvSeasonChip from '@/components/tv/TvSeasonChip.vue';
 import { Component, Prop, Vue } from 'vue-property-decorator';
 import { orderBy } from 'lodash';
 

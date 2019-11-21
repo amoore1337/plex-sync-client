@@ -14,7 +14,7 @@
 </template>
 
 <script lang="ts">
-import DownloadIndicator from './DownloadIndicator.vue';
+import DownloadIndicator from '@/components/DownloadIndicator.vue';
 import { Component, Prop, Vue } from 'vue-property-decorator';
 
 @Component({

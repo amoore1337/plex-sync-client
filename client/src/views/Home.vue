@@ -16,8 +16,8 @@
 <script lang="ts">
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import ContentToggle from '@/components/ContentToggle.vue';
-import TvGrid from '@/components/TvGrid.vue';
-import MoviesGrid from '@/components/MoviesGrid.vue';
+import TvGrid from '@/components/tv/TvGrid.vue';
+import MoviesGrid from '@/components/movies/MoviesGrid.vue';
 import axios from 'axios';
 
 @Component({

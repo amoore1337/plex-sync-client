@@ -1,6 +1,6 @@
 <template>
-  <tr :class="['grid-row', { selectable, expanded }]">
-    <div class="row-values" @click="toggleExpanded">
+  <tr :class="['grid-row', { selectable, expanded: expanded && hasExpandableContent }]">
+    <div class="row-values" @click="onRowClick">
       <td v-if="isExpandable" class="expand-control">
         <div v-if="!expandableOffset" :class="{ caret: true, collapse: this.expanded }"></div>
       </td>
@@ -26,6 +26,20 @@ export default class GridRow extends Vue {
 
   private get isExpandable() {
     return this.$slots.expanded || this.expandableOffset;
+  }
+
+  private get hasExpandableContent() {
+    return this.$slots.expanded;
+  }
+
+  private onRowClick() {
+    if (this.selectable) {
+      this.$emit('row-clicked');
+    }
+
+    if (this.hasExpandableContent) {
+      this.toggleExpanded();
+    }
   }
 
   private toggleExpanded() {

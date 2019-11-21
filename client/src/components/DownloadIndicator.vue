@@ -11,20 +11,12 @@
 </template>
 
 <script lang="ts">
-import Grid from './grid/Grid.vue';
-import { IGridHeader } from './grid/Grid.vue';
-import GridRow from './grid/GridRow.vue';
 import { Component, Prop, Vue } from 'vue-property-decorator';
 import { orderBy } from 'lodash';
 
 type IDownloadStatus = 'completed' | 'incomplete' | 'not-downloaded' | 'in-progress';
 
-@Component({
-  components: {
-    Grid,
-    GridRow,
-  },
-})
+@Component
 export default class TvGrid extends Vue {
   @Prop() private status!: IDownloadStatus;
   @Prop() private downloadable!: boolean;
