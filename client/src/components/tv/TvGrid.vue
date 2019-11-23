@@ -7,13 +7,32 @@
         <td :style="{flex: 20}">{{show.children.length}}</td>
         <td :style="{flex: 20}">{{show.size | numFormat('0.0b') }}</td>
         <td :style="{flex: 20}">
-          <download-indicator :status="'not-downloaded'" :downloadable="false"></download-indicator>
+          <download-indicator :status="show.status" :downloadable="false"></download-indicator>
         </td>
         <template v-slot:expanded>
-          <tv-season-chip v-for="(season, index) in show.children" :key="season.name" :season="season" :size="colSizes[index]" @season-download-requested="onSeasonDownloadRequested"></tv-season-chip>
+          <tv-season-chip v-for="(season, index) in show.children" :key="season.name" :season="season" :size="colSizes[index]" @season-download-requested="onSeasonDownloadRequested(show, season)"></tv-season-chip>
         </template>
       </grid-row>
     </grid>
+    <v-dialog v-model="showDownloadDialog" max-width="700">
+      <v-card>
+        <v-card-title>
+          Download <i class="italic">{{selected.show.name}} — {{selected.season.name}}</i>?
+        </v-card-title>
+        <v-card-text>
+          The selected movie will be downloaded directly to your server and will appear in Plex once completed.
+          Please ensure you have approximately <strong>{{selected.season.size | numFormat('0.0b')}}</strong> of free space available on your server before continuing.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn text color="red accent-4" @click="showDownloadDialog = false">Cancel</v-btn>
+          <v-btn color="light-blue darken-1" @click="initiateDownload(selected.season.id)" dark >
+            <v-icon dark medium>mdi-download</v-icon>
+            Download Season
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -43,6 +62,11 @@ export default class TvGrid extends Vue {
   @Prop() private tvShows!: any[];
   @Prop() private loading!: boolean;
 
+  private showDownloadDialog = false;
+  private selected = {
+    show: {},
+    season: {},
+  };
   private sortCol: ISortCol = { value: 'name', direction: 'asc' };
   private gridHeaders: IGridHeader[] = [
     { label: 'Name', sortable: true, size: 40 },
@@ -59,8 +83,14 @@ export default class TvGrid extends Vue {
     return this.gridHeaders.map((h: IGridHeader) => h.size);
   }
 
-  private onSeasonDownloadRequested(seasonId: string) {
-    // TODO: Open dialog for season and confirm download selection
+  private onSeasonDownloadRequested(show: any, season: any) {
+    this.selected = { show, season };
+    this.showDownloadDialog = true;
+  }
+
+  private initiateDownload(seasonId: string) {
+    this.showDownloadDialog = false;
+    // TODO: Make request to backend to trigger download
   }
 }
 </script>

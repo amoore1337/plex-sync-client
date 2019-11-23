@@ -1,64 +1,61 @@
-const compressing = require('compressing');
 const fs = require('fs');
-const dirTree = require('directory-tree');
 const path = require('path');
-const pump = require('pump');
 const config = require('nconf');
-const logger = require('winston');
+const { promisify } = require('util');
+const { encode } = require('url-safe-base64');
+const { sumBy, find, findIndex } = require('lodash');
+
+const readDirAsync = promisify(fs.readdir);
 
 let MOVIE_DIR;
 let TV_DIR;
-let PACKAGING_DIR;
 
-exports.compressMovie = function (inputPath) {
-  // Verify dir is configured before trying to zip
-  if (!getMovieDir()) {
-    const err = new Error('Movie directory does not exist.');
-    err.httpCode = 404;
-    return Promise.reject(err);
+exports.addStatusToMovies = async function(availableMovies) {
+  const localMovies = await getExistingMoviesMap();
+  for (var i = 0; i < availableMovies.length; i++) {
+    let movie = availableMovies[i];
+    // TODO: This isn't quite right, a movie can be 'in-progress' too, will need to check download queue for that
+    movie.status = findIndex(localMovies, { id: movie.id }) > -1 ? 'completed' : 'not-downloaded';
   }
-
-  const compressStream = new compressing.tgz.Stream();
-  compressStream.addEntry(moviePath(inputPath));
-  const destStream = fs.createWriteStream(packagingPath(inputPath));
-
-  return new Promise((resolve, reject) => {
-    pump(compressStream, destStream, (err) => { if (!err) { resolve(); } else { reject(err); } });
-  })
+  return availableMovies;
 }
 
-exports.compressTvShow = function (inputPath) {
-  // Verify dir is configured before trying to zip
-  if (!getTvDir()) {
-    const err = new Error('TV directory does not exist.');
-    err.httpCode = 404;
-    return Promise.reject(err);
+exports.addStatusToShows = async function(availableShows) {
+  const localShows = await getExistingTvShowsMap();
+
+  for (var i = 0; i < availableShows.length; i++) {
+    let show = availableShows[i];
+    // TODO: This is a brute force opproach and could easily be optimized. It also needs to account for 'in-progress' shows/seasons.
+    const localShow = find(localShows, { id: show.id });
+    if (!localShow) {
+      show.status = 'not-downloaded';
+      show.children.forEach((season) => season.status = 'not-downloaded');
+      continue;
+    }
+    for (var j = 0; j < show.children.length; j++) {
+      let season = show.children[j];
+      season.status = findIndex(localShow.children, { id: season.id }) > -1 ? 'completed' : 'not-downloaded';
+    }
+    show.status = findIndex(show.children, (s) => ['not-downloaded', 'in-progress'].indexOf(s.status) > -1) > -1 ? 'incomplete' : 'completed';
   }
-
-  const compressStream = new compressing.tgz.Stream();
-  compressStream.addEntry(tvPath(inputPath));
-  const destStream = fs.createWriteStream(packagingPath(inputPath));
-
-  return new Promise((resolve, reject) => {
-    pump(compressStream, destStream, (err) => { if (!err) { resolve(); } else { reject(err); } });
-  })
+  return availableShows;
 }
 
-exports.packagingPath = packagingPath;
+exports.getExistingMoviesMap = getExistingMoviesMap;
 
-exports.removePackagedFile = function(inputPath) {
-  fs.unlinkSync(packagingPath(inputPath));
-}
+exports.getExistingTvShowsMap = getExistingTvShowsMap;
 
-exports.getExistingMoviesMap = function() {
-  return dirTree(getMovieDir(), { extensions: /\.(mp4|mkv|avi)/ })
-}
-
-exports.getExistingTvShowsMap = function() {
-  return dirTree(getTvDir(), { extensions: /\.(mp4|mkv|avi)/ })
-}
+exports.getPathFromHash = getPathFromHash;
 
 // ===========================================================================
+
+function getExistingMoviesMap() {
+  return mapDir(getMovieDir(), { extensions: /\.(mp4|mkv|avi)$/g, basePath: getMovieDir() });
+}
+
+function getExistingTvShowsMap() {
+  return mapDir(getTvDir(), { extensions: /\.(mp4|mkv|avi)$/g, basePath: getTvDir() });
+}
 
 function getMovieDir() {
   if (!MOVIE_DIR) { MOVIE_DIR = config.get('MOVIE_DIR') || '/movies'; }
@@ -96,21 +93,40 @@ function tvPath(relPath) {
   return path.resolve(`${getTvDir()}/${relPath}`);
 }
 
-function packagingPath(relPath) {
-  if (!PACKAGING_DIR) { PACKAGING_DIR = initPackagingPath(); }
-
-  const fileName = `${path.parse(relPath).name}.tar`;
-  return path.resolve(`${PACKAGING_DIR}/${fileName}`);
+function filePathToHash(filePath) {
+  return encode(Buffer.from(filePath).toString('base64'));
 }
 
-function initPackagingPath() {
-  const path = config.get('PACKAGING_DIR') || '/packaging';
-  if (fs.existsSync(path)) { return path; }
+function getPathFromHash(hash) {
+  return Buffer.from(hash, 'base64').toString('ascii');
+}
 
-  const tempPath = `.${path}`;
-  if (!fs.existsSync(tempPath)) {
-    logger.warn(`Volume ${path} does not exist, creating temp dir.`);
-    fs.mkdirSync(tempPath);
-  }
-  return tempPath;
+// Options can contain a whitelisted list of file extensions expressed as a regex.
+function mapDir(dirPath, options = {}) {
+  return readDirAsync(dirPath).then(files => {
+    const dirMap = [];
+    const promises = [];
+    for (var i = 0; i < files.length; i++) {
+      const filePath = `${dirPath}/${files[i]}`;
+      const stats = fs.statSync(filePath);
+
+      if (options.extensions && stats.isFile() && !files[i].match(options.extensions)) {
+        continue;
+      }
+
+      const id = options.basePath ? filePathToHash(path.relative(options.basePath, filePath)) : filePathToHash(filePath);
+      const details = {
+        id,
+        name: files[i],
+        isDir: stats.isDirectory(),
+        size: stats.size,
+        children: [],
+      };
+      if (details.isDir) {
+        promises.push(mapDir(filePath, options).then(map => { details.children = map; details.size = details.size + sumBy(map, 'size') }));
+      }
+      dirMap.push(details);
+    }
+    return Promise.all(promises).then(() => dirMap);
+  });
 }

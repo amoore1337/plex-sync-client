@@ -43,7 +43,7 @@ module.exports = (callback) => {
     next(err);
   });
 
-  const NODE_PORT = config.get('NODE_PORT_INTERNAL') || 1337;
+  const NODE_PORT = config.get('NODE_PORT') || 1337;
 
   app.listen(NODE_PORT, () => {
     logger.info('[SERVER] Listening on port ' + NODE_PORT);

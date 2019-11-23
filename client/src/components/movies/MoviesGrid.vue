@@ -1,30 +1,34 @@
 <template>
-  <!-- <div class="tv-grid">
-    <div class="header row">
-      <div class="label flex-40">Name</div>
-      <div class="label flex-30">Size</div>
-      <div class="label flex-30">Download</div>
-    </div>
-    <div v-if="!this.loading">
-      <div class="row" v-for="movie in movies" v-bind:key="movie.name">
-        <div class="flex-40">{{movie.name}}</div>
-        <div class="flex-30">{{movie.size | numFormat('0.0b') }}</div>
-        <div class="flex-30"></div>
-      </div>
-    </div>
-    <div v-if="loading" class="row bold">Loading...</div>
-  </div> -->
   <div class="movies-grid">
     <div v-if="loading">Loading...</div>
     <grid v-else :headers="gridHeaders">
-      <grid-row v-for="movie in sortedMovies" v-bind:key="movie.name" :selectable="true" @row-clicked="onDownloadRequested(movie.id)">
+      <grid-row v-for="movie in sortedMovies" v-bind:key="movie.name" :selectable="true" @row-clicked="onDownloadRequested(movie)">
         <td :style="{flex: 40}">{{movie.name}}</td>
         <td :style="{flex: 30}">{{movie.size | numFormat('0.0b') }}</td>
         <td :style="{flex: 30}">
-          <download-indicator :status="'not-downloaded'" :downloadable="true"></download-indicator>
+          <download-indicator :status="movie.status"></download-indicator>
         </td>
       </grid-row>
     </grid>
+    <v-dialog v-model="showDownloadDialog" max-width="700">
+      <v-card>
+        <v-card-title>
+          Download <i class="italic">{{selectedMovie.name}}</i>?
+        </v-card-title>
+        <v-card-text>
+          The selected movie will be downloaded directly to your server and will appear in Plex once completed.
+          Please ensure you have approximately <strong>{{selectedMovie.size | numFormat('0.0b')}}</strong> of free space available on your server before continuing.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn text color="red accent-4" @click="showDownloadDialog = false">Cancel</v-btn>
+          <v-btn color="light-blue darken-1" @click="initiateDownload(selectedMovie.id)" dark >
+            <v-icon dark medium>mdi-download</v-icon>
+            Download Movie
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -52,6 +56,8 @@ export default class MoviesGrid extends Vue {
   @Prop() private movies!: any[];
   @Prop() private loading!: boolean;
 
+  private showDownloadDialog = false;
+  private selectedMovie: any = {};
   private sortCol: ISortCol = { value: 'name', direction: 'asc' };
   private gridHeaders: IGridHeader[] = [
     { label: 'Name', sortable: true, size: 40 },
@@ -63,8 +69,14 @@ export default class MoviesGrid extends Vue {
     return orderBy(this.movies, this.sortCol.value, this.sortCol.direction);
   }
 
-  private onDownloadRequested(id: string) {
-    // TODO: Trigger dialog with movie details and download confirm
+  private onDownloadRequested(movie: any) {
+    this.selectedMovie = movie;
+    this.showDownloadDialog = true;
+  }
+
+  private initiateDownload(id: string) {
+    this.showDownloadDialog = false;
+    // TODO: Make request to trigger download
   }
 }
 </script>

@@ -2,7 +2,7 @@
   <div class="tv-season-chip">
     <download-indicator
       @download-requested="$emit('season-download-requested', season.id)"
-      :status="'not-downloaded'"
+      :status="season.status"
       :downloadable="true"
     ></download-indicator>
     <span>{{season.name}}</span>
@@ -39,7 +39,10 @@ export default class TvSeasonChip extends Vue {
     }
 
     .download-indicator {
+      display: flex;
+      justify-content: center;
       margin-right: 15px;
+      width: 50px;
     }
 
     .dash {

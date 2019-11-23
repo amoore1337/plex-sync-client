@@ -1,9 +1,11 @@
 const { wrapAsync } = require('../services/router.service');
-const { getMovies } = require('../services/manager-comm.service');
+const { getAvailableMovies } = require('../services/manager-comm.service');
+const { addStatusToMovies } = require('../services/file.service');
 
 module.exports = (router) => {
   router.get('/', wrapAsync(async (_, res) => {
-    const movies = await getMovies();
+    let movies = await getAvailableMovies();
+    await addStatusToMovies(movies);
     res.json(movies);
   }));
 };

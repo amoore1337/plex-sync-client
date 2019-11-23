@@ -31,4 +31,12 @@ winston.add(logger);
 
 logger.info('[APP] Starting server initialization');
 
+process.on('uncaughtException', function (exception) {
+  logger.error(exception);
+});
+
+process.on('unhandledRejection', (reason, p) => {
+  logger.error("Unhandled Rejection at: Promise ", p, " reason: ", reason);
+});
+
 server();
