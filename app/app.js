@@ -3,12 +3,18 @@ const bodyParser = require('body-parser');
 const config = require('nconf');
 const logger = require('winston');
 const expressWinston = require('express-winston');
+const cron = require('node-cron');
+const localContentScan = require('./workers/local-content-scan');
+const db = require('./db/init');
 
 let app;
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 module.exports = (callback) => {
+
+  cron.schedule('*/1 * * * *', localContentScan);
+
   app = express();
 
   app.use(bodyParser.urlencoded({ extended: true }));
