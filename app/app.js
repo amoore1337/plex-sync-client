@@ -5,15 +5,14 @@ const logger = require('winston');
 const expressWinston = require('express-winston');
 const cron = require('node-cron');
 const localContentScan = require('./workers/local-content-scan');
-const db = require('./db/init');
+const remoteContentScan = require('./workers/remote-content-scan');
+const { dbConnection, runMigrations } = require('./db/db.helper');
 
 let app;
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
-module.exports = (callback) => {
-
-  cron.schedule('*/1 * * * *', localContentScan);
+module.exports = async (callback) => {
 
   app = express();
 
@@ -34,6 +33,16 @@ module.exports = (callback) => {
     colorize: false,
     ignoreRoute: function (req, res) { return false; }
   }));
+
+  // Run any pending migrations when the app starts up:
+  try {
+    const db = await dbConnection();
+    runMigrations(db);
+  } catch (error) {
+    logger.error('Migrations failed: ', error);
+  }
+
+  cron.schedule('*/1 * * * *', remoteContentScan);
 
   logger.info('[SERVER] Initializing routes');
   require('./routes/index')(app);
