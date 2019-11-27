@@ -1,10 +1,10 @@
-const { getAvailableMovies } = require('../services/manager-comm.service');
+const { getAvailableMovies, getAvailableShows } = require('../services/manager-comm.service');
 const { dbConnection, insertQuery, updateQuery } = require('../db/db.helper');
 const { findIndex } = require('lodash');
 
 module.exports = async function () {
   await syncRemoteMovies();
-  // TODO: Do the same for tv shows
+  await syncRemoteTvShows();
 }
 
 async function syncRemoteMovies() {
@@ -60,6 +60,17 @@ async function cleanupRemovedMovies(remoteMovies) {
       db.run(deleteByTokenQuery('remote_movies', existingMovie.id));
     }
   });
+}
+
+async function syncRemoteTvShows() {
+  const showsFromRemote = await getAvailableShows();
+
+  // Find any new content or out of date content:
+  showsFromRemote.forEach(async remoteShow => await updateOrCreateShow(remoteShow));
+}
+
+async function updateOrCreateShow() {
+  // TODO: Load in show from db along with info about seasons...
 }
 
 function selectByTokenQuery(tableName, token) {

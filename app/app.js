@@ -4,7 +4,7 @@ const config = require('nconf');
 const logger = require('winston');
 const expressWinston = require('express-winston');
 const cron = require('node-cron');
-const localContentScan = require('./workers/local-content-scan');
+// const localContentScan = require('./workers/local-content-scan');
 const remoteContentScan = require('./workers/remote-content-scan');
 const { dbConnection, runMigrations } = require('./db/db.helper');
 
@@ -42,7 +42,7 @@ module.exports = async (callback) => {
     logger.error('Migrations failed: ', error);
   }
 
-  cron.schedule('*/1 * * * *', remoteContentScan);
+  // cron.schedule('*/1 * * * *', remoteContentScan);
 
   logger.info('[SERVER] Initializing routes');
   require('./routes/index')(app);
