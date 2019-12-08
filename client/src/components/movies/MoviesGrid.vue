@@ -2,7 +2,7 @@
   <div class="movies-grid">
     <div v-if="loading">Loading...</div>
     <grid v-else :headers="gridHeaders">
-      <grid-row v-for="movie in sortedMovies" v-bind:key="movie.name" :selectable="true" @row-clicked="onDownloadRequested(movie)">
+      <grid-row v-for="movie in sortedMovies" v-bind:key="movie.token" :selectable="true" @row-clicked="onDownloadRequested(movie)">
         <td :style="{flex: 40}">{{movie.name}}</td>
         <td :style="{flex: 30}">{{movie.size | numFormat('0.0b') }}</td>
         <td :style="{flex: 30}">
@@ -10,6 +10,7 @@
         </td>
       </grid-row>
     </grid>
+
     <v-dialog v-model="showDownloadDialog" max-width="700">
       <v-card>
         <v-card-title>
@@ -17,12 +18,13 @@
         </v-card-title>
         <v-card-text>
           The selected movie will be downloaded directly to your server and will appear in Plex once completed.
-          Please ensure you have approximately <strong>{{selectedMovie.size | numFormat('0.0b')}}</strong> of free space available on your server before continuing.
+          Please ensure you have approximately <span class="font-weight-bold">{{selectedMovie.size | numFormat('0.0b')}}</span> of free space available on your server before continuing.
         </v-card-text>
         <v-card-actions>
+          <remaining-space-indicator :space-required="this.selectedMovie.size"></remaining-space-indicator>
           <v-spacer></v-spacer>
-          <v-btn text color="red accent-4" @click="showDownloadDialog = false">Cancel</v-btn>
-          <v-btn color="light-blue darken-1" @click="initiateDownload(selectedMovie.id)" dark >
+          <v-btn text @click="showDownloadDialog = false">Cancel</v-btn>
+          <v-btn color="primary" @click="initiateDownload(selectedMovie.token)" :disabled="remainingSpace < 0">
             <v-icon dark medium>mdi-download</v-icon>
             Download Movie
           </v-btn>
@@ -38,6 +40,8 @@ import Grid from '@/components/grid/Grid.vue';
 import { IGridHeader } from '../grid/Grid.vue'; // Have to use relative path for types to work...
 import GridRow from '@/components/grid/GridRow.vue';
 import DownloadIndicator from '@/components/DownloadIndicator.vue';
+import RemainingSpaceIndicator from '@/components/RemainingSpaceIndicator.vue';
+import { fileSystemService, IFileSystemStats } from '@/services/file-system.service';
 import { orderBy } from 'lodash';
 
 interface ISortCol {
@@ -50,6 +54,7 @@ interface ISortCol {
     Grid,
     GridRow,
     DownloadIndicator,
+    RemainingSpaceIndicator,
   },
 })
 export default class MoviesGrid extends Vue {

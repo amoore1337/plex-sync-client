@@ -4,11 +4,23 @@ const config = require('nconf');
 const { promisify } = require('util');
 const { encode } = require('url-safe-base64');
 const { sumBy, find, findIndex } = require('lodash');
+const disk = require('diskusage');
+const os = require('os');
 
+const osRoot = os.platform() === 'win32' ? 'c:' : '/';
 const readDirAsync = promisify(fs.readdir);
 
 let MOVIE_DIR;
 let TV_DIR;
+
+exports.getAvailableDriveSpace = async function() {
+  try {
+    const { available } = await disk.check(osRoot);
+    return available
+  } catch (err) {
+    return 0
+  }
+};
 
 exports.addStatusToMovies = async function(availableMovies) {
   const localMovies = await getExistingMoviesMap();
@@ -18,7 +30,7 @@ exports.addStatusToMovies = async function(availableMovies) {
     movie.status = findIndex(localMovies, { id: movie.id }) > -1 ? 'completed' : 'not-downloaded';
   }
   return availableMovies;
-}
+};
 
 exports.addStatusToShows = async function(availableShows) {
   const localShows = await getExistingTvShowsMap();
@@ -39,7 +51,7 @@ exports.addStatusToShows = async function(availableShows) {
     show.status = findIndex(show.children, (s) => ['not-downloaded', 'in-progress'].indexOf(s.status) > -1) > -1 ? 'incomplete' : 'completed';
   }
   return availableShows;
-}
+};
 
 exports.getExistingMoviesMap = getExistingMoviesMap;
 

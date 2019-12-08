@@ -6,6 +6,7 @@ const MANAGER_DOMAIN = 'https://192.168.1.205:1338';
 exports.getAvailableShows = function () {
   return axios.get(`${MANAGER_DOMAIN}/api/shows`).then(res => res.data);
 }
-exports.getAvailableMovies = function () {
+
+exports.fetchAvailableMovies = function () {
   return axios.get(`${MANAGER_DOMAIN}/api/movies`).then(res => res.data);
 }

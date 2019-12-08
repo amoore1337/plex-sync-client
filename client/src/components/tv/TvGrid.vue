@@ -24,9 +24,10 @@
           Please ensure you have approximately <strong>{{selected.season.size | numFormat('0.0b')}}</strong> of free space available on your server before continuing.
         </v-card-text>
         <v-card-actions>
+          <remaining-space-indicator :space-required="this.selected.season.size"></remaining-space-indicator>
           <v-spacer></v-spacer>
-          <v-btn text color="red accent-4" @click="showDownloadDialog = false">Cancel</v-btn>
-          <v-btn color="light-blue darken-1" @click="initiateDownload(selected.season.id)" dark >
+          <v-btn text @click="showDownloadDialog = false">Cancel</v-btn>
+          <v-btn color="primary" @click="initiateDownload(selected.season.id)">
             <v-icon dark medium>mdi-download</v-icon>
             Download Season
           </v-btn>
@@ -41,6 +42,7 @@ import Grid from '@/components/grid/Grid.vue';
 import { IGridHeader } from '../grid/Grid.vue'; // Have to use relative path for types to work...
 import GridRow from '@/components/grid/GridRow.vue';
 import DownloadIndicator from '@/components/DownloadIndicator.vue';
+import RemainingSpaceIndicator from '@/components/RemainingSpaceIndicator.vue';
 import TvSeasonChip from '@/components/tv/TvSeasonChip.vue';
 import { Component, Prop, Vue } from 'vue-property-decorator';
 import { orderBy } from 'lodash';
@@ -54,8 +56,9 @@ interface ISortCol {
   components: {
     Grid,
     GridRow,
-    DownloadIndicator,
     TvSeasonChip,
+    DownloadIndicator,
+    RemainingSpaceIndicator,
   },
 })
 export default class TvGrid extends Vue {

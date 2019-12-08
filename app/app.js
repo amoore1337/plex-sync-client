@@ -37,12 +37,13 @@ module.exports = async (callback) => {
   // Run any pending migrations when the app starts up:
   try {
     const db = await dbConnection();
-    runMigrations(db);
+    await runMigrations(db);
   } catch (error) {
     logger.error('Migrations failed: ', error);
   }
 
   // cron.schedule('*/1 * * * *', remoteContentScan);
+  remoteContentScan();
 
   logger.info('[SERVER] Initializing routes');
   require('./routes/index')(app);

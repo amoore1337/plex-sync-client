@@ -4,7 +4,7 @@
       <div class="half top"></div>
       <div class="half bottom"></div>
     </div>
-    <v-btn v-else @click="$emit('download-requested')" color="light-blue darken-1" dark small>
+    <v-btn v-else @click="$emit('download-requested')" color="primary" small>
       <v-icon dark medium>mdi-download</v-icon>
     </v-btn>
   </div>
