@@ -44,12 +44,12 @@ async function updateOrCreateMovie(remoteMovie, db) {
       remoteMovie.status = 'not-downloaded';
     }
 
-    if (existingRemoteMovie && existingRemoteMovie.status != remoteMovie.status) {
+    if (existingRemoteMovie && existingRemoteMovie.status !== remoteMovie.status) {
       await db.run(
         updateQuery(
           'remote_movies',
           { status: remoteMovie.status, size: remoteMovie.size }
-        ) + ` WHERE token = ${existingRemoteMovie.token}`
+        ) + ` WHERE token = "${existingRemoteMovie.token}"`
       );
     } else if (!existingRemoteMovie) {
       await db.run(insertQuery('remote_movies', {
@@ -108,12 +108,12 @@ async function updateOrCreateShow(remoteShow, db) {
       remoteShow.status = 'incomplete';
     }
 
-    if (existingRemoteShow && existingRemoteShow.status != remoteShow.status) {
+    if (existingRemoteShow && existingRemoteShow.status !== remoteShow.status) {
       await db.run(
         updateQuery(
           'remote_tv_shows',
           { status: remoteShow.status, size: remoteShow.size }
-        ) + ` WHERE token = ${existingRemoteShow.token}`
+        ) + ` WHERE token = "${existingRemoteShow.token}"`
       );
     } else if (!existingRemoteShow) {
       // Insert shows
@@ -202,12 +202,12 @@ async function updateOrCreateSeason(remoteSeason, showId, db) {
       remoteSeason.status = 'incomplete';
     }
 
-    if (existingRemoteSeason && existingRemoteSeason.status != remoteSeason.status) {
+    if (existingRemoteSeason && existingRemoteSeason.status !== remoteSeason.status) {
       await db.run(
         updateQuery(
           'remote_tv_show_seasons',
           { status: remoteSeason.status, size: remoteSeason.size }
-        ) + ` WHERE token = ${existingRemoteSeason.token}`
+        ) + ` WHERE token = "${existingRemoteSeason.token}"`
       );
     } else if (!existingRemoteSeason) {
       // Insert shows
@@ -248,7 +248,7 @@ async function cleanupRemovedSeasons(remoteShow, db) {
         // Delete season:
         await db.run(`
           DELETE FROM remote_tv_show_seasons
-          WHERE token = ${existingSeason.token}
+          WHERE token = "${existingSeason.token}"
         `);
       }
     });
@@ -293,12 +293,12 @@ async function updateOrCreateEpisode(remoteEpisode, seasonId, db) {
       remoteEpisode.status = 'not-downloaded';
     }
 
-    if (existingRemoteEpisode && existingRemoteEpisode.status != remoteEpisode.status) {
+    if (existingRemoteEpisode && existingRemoteEpisode.status !== remoteEpisode.status) {
       await db.run(
         updateQuery(
           'remote_tv_show_episodes',
           { status: remoteEpisode.status, size: remoteEpisode.size }
-        ) + ` WHERE token = ${existingRemoteEpisode.token}`
+        ) + ` WHERE token = "${existingRemoteEpisode.token}"`
       );
     } else if (!existingRemoteEpisode) {
       await db.run(insertQuery('remote_tv_show_episodes', {
@@ -330,7 +330,7 @@ async function cleanupRemovedEpisodes(remoteSeason, db) {
         // Delete episode:
         await db.run(`
           DELETE FROM remote_tv_show_episodes
-          WHERE token = ${existingSeason.token}
+          WHERE token = "${existingSeason.token}"
         `);
       }
     });
@@ -341,14 +341,15 @@ async function cleanupRemovedEpisodes(remoteSeason, db) {
 
 async function getEpisodeCountForShow(showToken, location = 'local', db) {
   try {
-    return db.get(`
+    const result = await db.get(`
       SELECT
-        COALESCE(COUNT(episodes.token), 0)
+        COALESCE(COUNT(episodes.token), 0) AS episode_count
       FROM ${location}_tv_shows shows
       LEFT JOIN ${location}_tv_show_seasons seasons ON seasons.${location}_tv_show_id = shows.ROWID
       LEFT JOIN ${location}_tv_show_episodes episodes ON episodes.${location}_tv_show_season_id = seasons.ROWID
       WHERE shows.token = "${showToken}"
     `);
+    return result.episode_count
   } catch (error) {
     console.error(error);
   }
@@ -356,13 +357,14 @@ async function getEpisodeCountForShow(showToken, location = 'local', db) {
 
 async function getEpisodeCountForSeason(seasonToken, location = 'local', db) {
   try {
-    return db.get(`
+    const result = await db.get(`
       SELECT
-        COALESCE(COUNT(episodes.token), 0)
+        COALESCE(COUNT(episodes.token), 0)  AS episode_count
       FROM ${location}_tv_show_seasons seasons
       LEFT JOIN ${location}_tv_show_episodes episodes ON episodes.${location}_tv_show_season_id = seasons.ROWID
       WHERE seasons.token = "${seasonToken}"
     `);
+    return result.episode_count
   } catch (error) {
     console.error(error)
   }

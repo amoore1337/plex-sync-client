@@ -135,7 +135,7 @@ exports.updateQuery = function(tableName, values) {
     query += `${key} = ${sanitizedQueryValues(value)}, `
   }
   // Remove trailing ', '
-  return query.slice(-2);
+  return query.slice(0, -2);
 
 }
 

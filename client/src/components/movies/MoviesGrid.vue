@@ -24,7 +24,7 @@
           <remaining-space-indicator :space-required="this.selectedMovie.size"></remaining-space-indicator>
           <v-spacer></v-spacer>
           <v-btn text @click="showDownloadDialog = false">Cancel</v-btn>
-          <v-btn color="primary" @click="initiateDownload(selectedMovie.token)">
+          <v-btn color="primary" @click="initiateDownload(selectedMovie.token)" :disabled="selectedMovie.status !== 'not-downloaded'">
             <v-icon dark medium>mdi-download</v-icon>
             Download Movie
           </v-btn>

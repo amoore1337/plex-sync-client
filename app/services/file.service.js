@@ -126,9 +126,9 @@ function mapDir(dirPath, options = {}) {
         continue;
       }
 
-      const id = options.basePath ? filePathToHash(path.relative(options.basePath, filePath)) : filePathToHash(filePath);
+      const token = options.basePath ? filePathToHash(path.relative(options.basePath, filePath)) : filePathToHash(filePath);
       const details = {
-        id,
+        token,
         name: files[i],
         isDir: stats.isDirectory(),
         size: stats.size,
