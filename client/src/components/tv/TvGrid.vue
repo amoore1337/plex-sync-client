@@ -10,7 +10,7 @@
           <download-indicator :status="show.status" :downloadable="false"></download-indicator>
         </td>
         <template v-slot:expanded>
-          <tv-season-chip v-for="(season, index) in show.seasons" :key="season.name" :season="season" :size="colSizes[index]" @season-download-requested="onSeasonDownloadRequested(show, season)"></tv-season-chip>
+          <tv-season-chip v-for="season in show.seasons" :key="season.name" :season="season" @season-download-requested="onSeasonDownloadRequested(show, season)"></tv-season-chip>
         </template>
       </grid-row>
     </grid>
@@ -20,8 +20,12 @@
           Download <i class="italic">{{selected.show.name}} — {{selected.season.name}}</i>?
         </v-card-title>
         <v-card-text>
-          The selected movie will be downloaded directly to your server and will appear in Plex once completed.
+          The selected season will be downloaded directly to your server and will appear in Plex once completed.
           Please ensure you have approximately <strong>{{selected.season.size | numFormat('0.0b')}}</strong> of free space available on your server before continuing.
+          <span class="font-weight-bold">Episodes:</span>
+          <div class="episodes-container">
+            <tv-episode-chip v-for="episode in sortEpisodes(selected.season.episodes)" :key="episode.name" :episode="episode"></tv-episode-chip>
+          </div>
         </v-card-text>
         <v-card-actions>
           <remaining-space-indicator :space-required="this.selected.season.size"></remaining-space-indicator>
@@ -44,6 +48,7 @@ import GridRow from '@/components/grid/GridRow.vue';
 import DownloadIndicator from '@/components/DownloadIndicator.vue';
 import RemainingSpaceIndicator from '@/components/RemainingSpaceIndicator.vue';
 import TvSeasonChip from '@/components/tv/TvSeasonChip.vue';
+import TvEpisodeChip from '@/components/tv/TvEpisodeChip.vue';
 import { Component, Prop, Vue } from 'vue-property-decorator';
 import { orderBy } from 'lodash';
 
@@ -57,6 +62,7 @@ interface ISortCol {
     Grid,
     GridRow,
     TvSeasonChip,
+    TvEpisodeChip,
     DownloadIndicator,
     RemainingSpaceIndicator,
   },
@@ -82,8 +88,8 @@ export default class TvGrid extends Vue {
     return orderBy(this.tvShows, this.sortCol.value, this.sortCol.direction);
   }
 
-  private get colSizes() {
-    return this.gridHeaders.map((h: IGridHeader) => h.size);
+  private sortEpisodes(episodes: any) {
+    return orderBy(episodes, 'name', 'asc');
   }
 
   private onSeasonDownloadRequested(show: any, season: any) {
@@ -101,5 +107,10 @@ export default class TvGrid extends Vue {
 <style scoped lang="scss">
   .tv-grid {
     width: 100%;
+  }
+
+  .episodes-container {
+    max-height: 350px;
+    overflow-y: scroll;
   }
 </style>

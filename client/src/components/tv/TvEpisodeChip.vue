@@ -1,15 +1,10 @@
 <template>
-  <div class="tv-season-chip">
+  <div class="tv-episode-chip">
     <download-indicator
-      @download-requested="$emit('season-download-requested', season.token)"
-      :status="season.status"
-      :downloadable="true"
+      :status="episode.status"
+      :downloadable="false"
     ></download-indicator>
-    <span>{{season.name}}</span>
-    <span class="dash">—</span>
-    <span>{{season.episodes.length}} episodes</span>
-    <span class="dash">—</span>
-    <span>{{season.size | numFormat('0.0b') }}</span>
+    <span>{{episode.name}}</span>
   </div>
 </template>
 
@@ -22,25 +17,22 @@ import { Component, Prop, Vue } from 'vue-property-decorator';
     DownloadIndicator,
   },
 })
-export default class TvSeasonChip extends Vue {
-  @Prop() private season!: any[];
+export default class TvEpisodeChip extends Vue {
+  @Prop() private episode!: any[];
+  @Prop() private size!: number;
 }
 </script>
 
 <style scoped lang="scss">
-  .tv-season-chip {
+  .tv-episode-chip {
     display: flex;
     align-items: center;
     height: 45px;
 
-    &:hover {
-      font-weight: bold;
-    }
-
     .download-indicator {
       display: flex;
       justify-content: center;
-      margin-right: 15px;
+      // margin-right: 15px;
       width: 50px;
     }
 
