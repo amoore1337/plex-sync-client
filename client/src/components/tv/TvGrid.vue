@@ -4,13 +4,13 @@
     <grid v-else :headers="gridHeaders" :allow-expand="true">
       <grid-row v-for="show in sortedShows" v-bind:key="show.name" :selectable="true">
         <td :style="{flex: 40}">{{show.name}}</td>
-        <td :style="{flex: 20}">{{show.children.length}}</td>
+        <td :style="{flex: 20}">{{show.seasons.length}}</td>
         <td :style="{flex: 20}">{{show.size | numFormat('0.0b') }}</td>
         <td :style="{flex: 20}">
           <download-indicator :status="show.status" :downloadable="false"></download-indicator>
         </td>
         <template v-slot:expanded>
-          <tv-season-chip v-for="(season, index) in show.children" :key="season.name" :season="season" :size="colSizes[index]" @season-download-requested="onSeasonDownloadRequested(show, season)"></tv-season-chip>
+          <tv-season-chip v-for="(season, index) in show.seasons" :key="season.name" :season="season" :size="colSizes[index]" @season-download-requested="onSeasonDownloadRequested(show, season)"></tv-season-chip>
         </template>
       </grid-row>
     </grid>
@@ -27,7 +27,7 @@
           <remaining-space-indicator :space-required="this.selected.season.size"></remaining-space-indicator>
           <v-spacer></v-spacer>
           <v-btn text @click="showDownloadDialog = false">Cancel</v-btn>
-          <v-btn color="primary" @click="initiateDownload(selected.season.id)">
+          <v-btn color="primary" @click="initiateDownload(selected.season.token)">
             <v-icon dark medium>mdi-download</v-icon>
             Download Season
           </v-btn>

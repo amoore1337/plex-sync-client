@@ -88,18 +88,15 @@ const MIGRATIONS = [
   ]
 ];
 
-let db;
 exports.dbConnection = async function() {
-  if (db) { return db }
   try {
-    db = await Database.open('./app/db/app.db');
-    return db;
+    return await Database.open('./app/db/app.db');
   } catch (err) {
     throw Error('Unable to initialize db... ' + err);
   }
 }
 
-exports.dbClose = async function() {
+exports.dbClose = async function(db) {
   if (!db) { return; }
   try {
     await db.close()

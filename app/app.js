@@ -6,7 +6,7 @@ const expressWinston = require('express-winston');
 const cron = require('node-cron');
 // const localContentScan = require('./workers/local-content-scan');
 const remoteContentScan = require('./workers/remote-content-scan');
-const { dbConnection, runMigrations } = require('./db/db.helper');
+const { dbConnection, dbClose, runMigrations } = require('./db/db.helper');
 
 let app;
 
@@ -38,6 +38,7 @@ module.exports = async (callback) => {
   try {
     const db = await dbConnection();
     await runMigrations(db);
+    await dbClose(db);
   } catch (error) {
     logger.error('Migrations failed: ', error);
   }

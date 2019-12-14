@@ -1,5 +1,5 @@
 const { getExistingMoviesMap } = require('../services/file.service');
-const { dbConnection, insertQuery } = require('../db/db.helper');
+const { dbConnection, dbClose, insertQuery } = require('../db/db.helper');
 
 module.exports = async function() {
   const db = await dbConnection();
@@ -16,6 +16,7 @@ module.exports = async function() {
       }));
     }
   }
+  await dbClose(db)
 }
 
 function selectByTokenQuery(tableName, token) {

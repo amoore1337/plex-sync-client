@@ -1,13 +1,13 @@
 <template>
   <div class="tv-season-chip">
     <download-indicator
-      @download-requested="$emit('season-download-requested', season.id)"
+      @download-requested="$emit('season-download-requested', season.token)"
       :status="season.status"
       :downloadable="true"
     ></download-indicator>
     <span>{{season.name}}</span>
     <span class="dash">—</span>
-    <span>{{season.children.length}} episodes</span>
+    <span>{{season.episodes.length}} episodes</span>
     <span class="dash">—</span>
     <span>{{season.size | numFormat('0.0b') }}</span>
   </div>

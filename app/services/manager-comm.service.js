@@ -3,7 +3,7 @@ const axios = require('axios');
 const MANAGER_DOMAIN = 'https://192.168.1.205:1338';
 // const MANAGER_DOMAIN = 'https://localhost:1338';
 
-exports.getAvailableShows = function () {
+exports.fetchAvailableShows = function () {
   return axios.get(`${MANAGER_DOMAIN}/api/shows`).then(res => res.data);
 }
 
