@@ -12,6 +12,7 @@ const readDirAsync = promisify(fs.readdir);
 
 let MOVIE_DIR;
 let TV_DIR;
+let UNPACK_DIR;
 
 exports.getAvailableDriveSpace = async function() {
   try {

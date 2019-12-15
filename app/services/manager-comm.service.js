@@ -21,6 +21,7 @@ exports.downloadContent = async function (token) {
   // Listen for finished and remove pending record + update local_tv_ tables
   // Return after pending db records have been created
   worker.on('message', message => console.log("GOT MESSAGE: ", message));
+  worker.on('error', (err) => console.error(err));
   worker.on('exit', (code) => {
     console.log('DONE!! ', code);
   });
