@@ -42,6 +42,7 @@ import GridRow from '@/components/grid/GridRow.vue';
 import DownloadIndicator from '@/components/DownloadIndicator.vue';
 import RemainingSpaceIndicator from '@/components/RemainingSpaceIndicator.vue';
 import { fileSystemService, IFileSystemStats } from '@/services/file-system.service';
+import { downloadContentService } from '@/services/download-content.service';
 import { orderBy } from 'lodash';
 
 interface ISortCol {
@@ -79,9 +80,9 @@ export default class MoviesGrid extends Vue {
     this.showDownloadDialog = true;
   }
 
-  private initiateDownload(id: string) {
+  private initiateDownload(token: string) {
     this.showDownloadDialog = false;
-    // TODO: Make request to trigger download
+    downloadContentService.downloadContent('movies', token).then(data => console.log(data));
   }
 }
 </script>
