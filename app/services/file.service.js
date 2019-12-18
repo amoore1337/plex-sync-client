@@ -60,14 +60,16 @@ exports.getExistingTvShowsMap = getExistingTvShowsMap;
 
 exports.getPathFromHash = getPathFromHash;
 
+exports.getMovieDir = getMovieDir;
+
 // ===========================================================================
 
 function getExistingMoviesMap() {
-  return mapDir(getMovieDir(), { extensions: /\.(mp4|mkv|avi)$/g, basePath: getMovieDir() });
+  return mapDir(getMovieDir(), { extensions: /\.(mp4|mkv|avi|m4v)$/g, basePath: getMovieDir() });
 }
 
 function getExistingTvShowsMap() {
-  return mapDir(getTvDir(), { extensions: /\.(mp4|mkv|avi)$/g, basePath: getTvDir() });
+  return mapDir(getTvDir(), { extensions: /\.(mp4|mkv|avi|m4v)$/g, basePath: getTvDir() });
 }
 
 function getMovieDir() {

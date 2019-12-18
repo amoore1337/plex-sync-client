@@ -1,6 +1,8 @@
 const fs = require('fs');
+const fsExtra = require('fs-extra');
 const path = require('path');
 const axios = require('axios');
+const compressing = require('compressing');
 const { parentPort, workerData } = require('worker_threads');
 
 const UNPACK_DIR = '../../unpack';
@@ -8,27 +10,70 @@ const MANAGER_DOMAIN = 'https://192.168.1.205:1338';
 // const MANAGER_DOMAIN = 'https://localhost:1338';
 
 (async () => {
-  const token = workerData.token;
+  const { token, filePath, rootDir } = workerData;
+  console.log(token, '  ', filePath);
   const url = `${MANAGER_DOMAIN}/api/checkout/movies/${token}`;
-  const filePath = path.resolve(__dirname, UNPACK_DIR, 'tmp.tar');
-  const writer = fs.createWriteStream(filePath);
+  const noPaddingToken = token.replace(/\./g, '');
 
-  const promise = axios({
+  const tempTar = path.resolve(__dirname, UNPACK_DIR, `${noPaddingToken}.tar`);
+  const tempDirPath = path.resolve(__dirname, UNPACK_DIR, noPaddingToken);
+  const outputDir = filePath.slice((filePath.lastIndexOf('/') + 1), filePath.length);
+  const outputPath = path.resolve(__dirname, tempDirPath, outputDir);
+  const destinationPath = `${rootDir}/${outputDir}`
+  console.log("temp values: ", tempTar, '  ', tempDirPath);
+  console.log("output values: ", outputDir, '  ', outputPath);
+  console.log("destination values: ", destinationPath);
+
+  const writer = fs.createWriteStream(tempTar);
+
+  const { data, headers } = await axios({
     url,
     method: 'GET',
     responseType: 'stream',
-  }).then(response => {
-    parentPort.postMessage("Testing 123");
-    response.data.pipe(writer);
+  });
+  const totalSize = headers['content-length'];
+  console.log("total size: ", totalSize);
 
-    return new Promise((resolve, reject) => {
-      writer.on('finish', resolve);
-      writer.on('error', reject);
-    });
-  }).catch(err => console.error(err));
+  let counter = 0
+  let received = 0
+  data.on('data', chunk => {
+    received += chunk.length
+    if (counter++ > 300) {
+      console.log("GOT SOME MORE DATA  ", chunk.length, "   ", received);
+      counter = 0
+    }
+  });
+  writer.on('error', err => console.error(err));
+  data.pipe(writer);
+
+  writer.on('finish', async () => {
+    console.log('beginning decompression...');
+    await unpackFile();
+    console.log('moving media...');
+    await moveMedia();
+    console.log('cleaning up files...');
+    await removeTar();
+    await removeTempDir();
+  });
 
   parentPort.postMessage("Howdy!!");
-  // Use manager-comm.service to start file download
-  // Grab logic from test script and post messages back to parent with download status updates
-  return promise;
+
+  async function unpackFile() {
+    return await compressing.tgz.uncompress(
+      tempTar,
+      tempDirPath,
+    );
+  }
+
+  async function moveMedia() {
+    return await fsExtra.move(outputPath, destinationPath);
+  }
+
+  async function removeTar() {
+    return await fsExtra.remove(tempTar);
+  }
+
+  async function removeTempDir() {
+    return await fsExtra.remove(tempDirPath);
+  }
 })();

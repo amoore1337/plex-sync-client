@@ -1,5 +1,6 @@
 const axios = require('axios');
 const { Worker } = require('worker_threads');
+const { getPathFromHash, getMovieDir } = require('./file.service');
 
 const MANAGER_DOMAIN = 'https://192.168.1.205:1338';
 // const MANAGER_DOMAIN = 'https://localhost:1338';
@@ -13,8 +14,10 @@ exports.fetchAvailableMovies = function () {
 }
 
 exports.downloadContent = async function (token) {
+  const filePath = getPathFromHash(token);
+  const rootDir = getMovieDir();
   const worker = new Worker(require.resolve('../workers/download-content.js'), {
-    workerData: { token }
+    workerData: { token, filePath, rootDir }
   });
   // Create "pending" db record
   // Listen for download status updates
