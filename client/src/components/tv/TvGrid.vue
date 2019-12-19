@@ -51,6 +51,7 @@ import TvSeasonChip from '@/components/tv/TvSeasonChip.vue';
 import TvEpisodeChip from '@/components/tv/TvEpisodeChip.vue';
 import { Component, Prop, Vue } from 'vue-property-decorator';
 import { orderBy } from 'lodash';
+import { downloadContentService } from '@/services/download-content.service';
 
 interface ISortCol {
   value: string;
@@ -97,9 +98,9 @@ export default class TvGrid extends Vue {
     this.showDownloadDialog = true;
   }
 
-  private initiateDownload(seasonId: string) {
+  private initiateDownload(seasonToken: string) {
     this.showDownloadDialog = false;
-    // TODO: Make request to backend to trigger download
+    downloadContentService.downloadContent('shows', seasonToken).then(data => console.log(data));
   }
 }
 </script>

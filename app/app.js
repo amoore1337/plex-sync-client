@@ -44,8 +44,12 @@ module.exports = async (callback) => {
   }
 
   // cron.schedule('*/1 * * * *', remoteContentScan);
-  await localContentScan();
-  await remoteContentScan();
+  try {
+    await localContentScan();
+    await remoteContentScan();
+  } catch (error) {
+    logger.error(error);
+  }
 
   logger.info('[SERVER] Initializing routes');
   require('./routes/index')(app);

@@ -10,39 +10,44 @@ const MANAGER_DOMAIN = 'https://192.168.1.205:1338';
 // const MANAGER_DOMAIN = 'https://localhost:1338';
 
 (async () => {
-  const { token, filePath, rootDir } = workerData;
-  console.log(token, '  ', filePath);
-  const url = `${MANAGER_DOMAIN}/api/checkout/movies/${token}`;
+  const { token, filePath, type, rootDir } = workerData;
+  const typeToRouteMap = { 'movies': 'm', 'shows': 's' };
+  const url = `${MANAGER_DOMAIN}/api/checkout/${typeToRouteMap[type]}`;
   const noPaddingToken = token.replace(/\./g, '');
 
-  const tempTar = path.resolve(__dirname, UNPACK_DIR, `${noPaddingToken}.tar`);
-  const tempDirPath = path.resolve(__dirname, UNPACK_DIR, noPaddingToken);
-  const outputDir = filePath.slice((filePath.lastIndexOf('/') + 1), filePath.length);
-  const outputPath = path.resolve(__dirname, tempDirPath, outputDir);
-  const destinationPath = `${rootDir}/${outputDir}`
-  console.log("temp values: ", tempTar, '  ', tempDirPath);
-  console.log("output values: ", outputDir, '  ', outputPath);
-  console.log("destination values: ", destinationPath);
+  // The tar file retrieved from Manager:
+  const downloadTarPath = path.resolve(__dirname, UNPACK_DIR, `${noPaddingToken}.tar`);
+  // The directory extracted from the tar file:
+  const extractedPath = path.resolve(__dirname, UNPACK_DIR, noPaddingToken);
+  // The name of the media file/directory returned by Manager:
+  const contentName = path.basename(filePath);
+  // The path to the extracted media content:
+  const contentPath = path.resolve(__dirname, extractedPath, contentName);
+  // The path we need to move the content to:
+  const destinationPath = `${rootDir}/${filePath}`
 
-  const writer = fs.createWriteStream(tempTar);
+  const writer = fs.createWriteStream(downloadTarPath);
 
   const { data, headers } = await axios({
     url,
-    method: 'GET',
+    method: 'POST',
     responseType: 'stream',
+    data: { token },
   });
   const totalSize = headers['content-length'];
-  console.log("total size: ", totalSize);
 
-  let counter = 0
+  // Throttle how frequently we notify of download updates to once every 5% of progress
+  let lastProgressUpdate = 0
   let received = 0
   data.on('data', chunk => {
     received += chunk.length
-    if (counter++ > 300) {
-      console.log("GOT SOME MORE DATA  ", chunk.length, "   ", received);
-      counter = 0
+    const progress = percentComplete(received, totalSize)
+    if (progress > lastProgressUpdate && progress % 5 === 0) {
+      console.log("GOT SOME MORE DATA  ", progress), "%";
+      lastProgressUpdate = progress;
     }
   });
+
   writer.on('error', err => console.error(err));
   data.pipe(writer);
 
@@ -58,22 +63,30 @@ const MANAGER_DOMAIN = 'https://192.168.1.205:1338';
 
   parentPort.postMessage("Howdy!!");
 
+  // === Helper functions: ===
+
   async function unpackFile() {
     return await compressing.tgz.uncompress(
-      tempTar,
-      tempDirPath,
+      downloadTarPath,
+      extractedPath,
     );
   }
 
   async function moveMedia() {
-    return await fsExtra.move(outputPath, destinationPath);
+    // Replace the content if it already exists for some reason
+    return await fsExtra.move(contentPath, destinationPath, { overwrite: true });
   }
 
   async function removeTar() {
-    return await fsExtra.remove(tempTar);
+    return await fsExtra.remove(downloadTarPath);
   }
 
   async function removeTempDir() {
-    return await fsExtra.remove(tempDirPath);
+    return await fsExtra.remove(extractedPath);
   }
+
+  function percentComplete(downloadedSize, totalSize) {
+    return Math.round((downloadedSize / totalSize) * 100)
+  }
+
 })();

@@ -69,9 +69,9 @@ async function cleanupRemovedMovies(remoteMovies, db) {
   try {
     const existingMovies = await db.all(`SELECT * from remote_movies`);
 
-    existingMovies.forEach(existingMovie => {
-      if (findIndex(remoteMovies, (r) => r.id === existingMovie.id) < 0) {
-        db.run(deleteByTokenQuery('remote_movies', existingMovie.id));
+    existingMovies.forEach(async existingMovie => {
+      if (findIndex(remoteMovies, (r) => r.id === existingMovie.token) < 0) {
+        await db.run(deleteByTokenQuery('remote_movies', existingMovie.token));
       }
     });
   } catch (error) {

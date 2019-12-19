@@ -6,17 +6,17 @@ const { encode } = require('url-safe-base64');
 const { sumBy, find, findIndex } = require('lodash');
 const disk = require('diskusage');
 const os = require('os');
-
-const osRoot = os.platform() === 'win32' ? 'c:' : '/';
 const readDirAsync = promisify(fs.readdir);
 
-let MOVIE_DIR;
-let TV_DIR;
-let UNPACK_DIR;
+const OS_ROOT = os.platform() === 'win32' ? 'c:' : '/';
+const PROJECT_ROOT = './';
+
+let MOVIE_PATH;
+let TV_PATH;
 
 exports.getAvailableDriveSpace = async function() {
   try {
-    const { available } = await disk.check(osRoot);
+    const { available } = await disk.check(OS_ROOT);
     return available
   } catch (err) {
     return 0
@@ -60,52 +60,52 @@ exports.getExistingTvShowsMap = getExistingTvShowsMap;
 
 exports.getPathFromHash = getPathFromHash;
 
-exports.getMovieDir = getMovieDir;
+exports.getMoviePath = getMoviePath;
+
+exports.getTvPath = getTvPath;
 
 // ===========================================================================
 
 function getExistingMoviesMap() {
-  return mapDir(getMovieDir(), { extensions: /\.(mp4|mkv|avi|m4v)$/g, basePath: getMovieDir() });
+  return mapDir(getMoviePath(), { extensions: /\.(mp4|mkv|avi|m4v)$/g, basePath: getMoviePath() });
 }
 
 function getExistingTvShowsMap() {
-  return mapDir(getTvDir(), { extensions: /\.(mp4|mkv|avi|m4v)$/g, basePath: getTvDir() });
+  return mapDir(getTvPath(), { extensions: /\.(mp4|mkv|avi|m4v)$/g, basePath: getTvPath() });
 }
 
-function getMovieDir() {
-  if (!MOVIE_DIR) { MOVIE_DIR = config.get('MOVIE_DIR') || '/movies'; }
+function getMoviePath() {
+  if (MOVIE_PATH) { return MOVIE_PATH }
+  let movieDir = config.get('MOVIE_DIR') || '/movies';
 
-  if (!fs.existsSync(MOVIE_DIR)) {
+  const absolutePath = path.resolve(PROJECT_ROOT, movieDir);
+  if (fs.existsSync(absolutePath)) {
+    MOVIE_PATH = absolutePath;
+  } else {
     // Try looking in relative path
-    if (fs.existsSync(`.${MOVIE_DIR}`)) {
-      MOVIE_DIR = `.${MOVIE_DIR}`
-    } else {
-      MOVIE_DIR = null;
+    const relativePath = path.relative(PROJECT_ROOT, `.${movieDir}`);
+    if (fs.existsSync(relativePath)) {
+      MOVIE_PATH = relativePath
     }
   }
-  return MOVIE_DIR;
+  return MOVIE_PATH;
 }
 
-function getTvDir() {
-  if (!TV_DIR) { TV_DIR = config.get('TV_DIR') || '/tv_shows'; }
+function getTvPath() {
+  if (TV_PATH) { return TV_PATH }
+  let tvDir = config.get('TV_DIR') || '/tv_shows';
 
-  if (!fs.existsSync(TV_DIR)) {
+  const absolutePath = path.resolve(PROJECT_ROOT, tvDir);
+  if (fs.existsSync(absolutePath)) {
+    TV_PATH = absolutePath;
+  } else {
     // Try looking in relative path
-    if (fs.existsSync(`.${TV_DIR}`)) {
-      TV_DIR = `.${TV_DIR}`
-    } else {
-      TV_DIR = null;
+    const relativePath = path.relative(PROJECT_ROOT, `.${tvDir}`);
+    if (fs.existsSync(relativePath)) {
+      TV_PATH = relativePath
     }
   }
-  return TV_DIR;
-}
-
-function moviePath(relPath) {
-  return path.resolve(`${getMovieDir()}/${relPath}`);
-}
-
-function tvPath(relPath) {
-  return path.resolve(`${getTvDir()}/${relPath}`);
+  return TV_PATH;
 }
 
 function filePathToHash(filePath) {

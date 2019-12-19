@@ -81,6 +81,7 @@ const MIGRATIONS = [
         name TEXT,
         type TEXT,
         token TEXT,
+        last_event TEXT,
         size INTEGER,
         created_at INTEGER
       )
@@ -90,7 +91,8 @@ const MIGRATIONS = [
 
 exports.dbConnection = async function() {
   try {
-    return await Database.open('./app/db/app.db');
+    const db = await Database.open('./app/db/app.db');
+    return db;
   } catch (err) {
     throw Error('Unable to initialize db... ' + err);
   }
@@ -116,7 +118,8 @@ exports.runMigrations = async function(db) {
           queries.push(tx.run(migration));
         });
       }
-      queries.push(tx.run(`PRAGMA user_version = ${MIGRATIONS.length}`))
+      queries.push(tx.run(`PRAGMA user_version = ${MIGRATIONS.length}`));
+      queries.push(tx.run('PRAGMA journal_mode = WAL'));
     }
     return Promise.all(queries);
   });
