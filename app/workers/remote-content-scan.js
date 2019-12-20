@@ -93,6 +93,8 @@ async function updateOrCreateShow(remoteShow, db) {
   try {
     const existingRemoteShow = await db.get(selectByTokenQuery('remote_tv_shows', remoteShow.id));
 
+    // Derp, this is fundamentally wrong, we haven't written any episodes to the db yet
+    // so these counts won't be right the first time this script is run
     let episodeCount = {
       local: await getEpisodeCountForShow(remoteShow.id, 'local', db),
       remote: await getEpisodeCountForShow(remoteShow.id, 'remote', db)
@@ -100,10 +102,10 @@ async function updateOrCreateShow(remoteShow, db) {
 
     // Determine status of show
     remoteShow.status = 'not-downloaded';
-    if (existingRemoteShow && await isShowPendingDownload(existingRemoteShow.rowid, db)) {
-      remoteShow.status = 'in-progress';
-    } else if (episodeCount.local === episodeCount.remote) {
+    if (episodeCount.local === episodeCount.remote && episodeCount.remote) { // This last && condition is a hack to workaround the problem above
       remoteShow.status = 'completed';
+    } else if (existingRemoteShow && await isShowPendingDownload(existingRemoteShow.rowid, db)) {
+      remoteShow.status = 'in-progress';
     } else if (episodeCount.local > 0 && episodeCount.remote > episodeCount.local) {
       remoteShow.status = 'incomplete';
     }
@@ -187,6 +189,7 @@ async function updateOrCreateSeason(remoteSeason, showId, db) {
   try {
     const existingRemoteSeason = await db.get(selectByTokenQuery('remote_tv_show_seasons', remoteSeason.id));
 
+    // See notes about show, same problem applies here...
     let episodeCount = {
       local: await getEpisodeCountForSeason(remoteSeason.id, 'local', db),
       remote: await getEpisodeCountForSeason(remoteSeason.id, 'remote', db)
@@ -194,10 +197,10 @@ async function updateOrCreateSeason(remoteSeason, showId, db) {
 
     // Determine status of show
     remoteSeason.status = 'not-downloaded';
-    if (existingRemoteSeason && await isSeasonPendingDownload(existingRemoteSeason.rowid, db)) {
-      remoteSeason.status = 'in-progress';
-    } else if (episodeCount.local === episodeCount.remote) {
+    if (episodeCount.local === episodeCount.remote && episodeCount.remote) {
       remoteSeason.status = 'completed';
+    } else if (existingRemoteSeason && await isSeasonPendingDownload(existingRemoteSeason.rowid, db)) {
+      remoteSeason.status = 'in-progress';
     } else if (episodeCount.local > 0 && episodeCount.remote > episodeCount.local) {
       remoteSeason.status = 'incomplete';
     }

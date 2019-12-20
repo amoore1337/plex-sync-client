@@ -23,7 +23,7 @@ import { Component, Prop, Vue } from 'vue-property-decorator';
   },
 })
 export default class TvSeasonChip extends Vue {
-  @Prop() private season!: any[];
+  @Prop() private season!: any;
 }
 </script>
 
@@ -32,10 +32,6 @@ export default class TvSeasonChip extends Vue {
     display: flex;
     align-items: center;
     height: 45px;
-
-    &:hover {
-      font-weight: bold;
-    }
 
     .download-indicator {
       display: flex;

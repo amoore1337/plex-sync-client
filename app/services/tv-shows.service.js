@@ -14,14 +14,14 @@ exports.getAvailableTvShows = async function () {
   }
 
   await dbClose(db)
-  return await shows;
+  return shows;
 }
 
 async function getSeasonsForShow(showId) {
   let db;
   try {
     db = await dbConnection();
-    return await db.all(`
+    return db.all(`
       SELECT *, ROWID FROM remote_tv_show_seasons WHERE remote_tv_show_id = ${showId}
     `);
   } catch (error) {

@@ -100,7 +100,7 @@ export default class TvGrid extends Vue {
 
   private initiateDownload(seasonToken: string) {
     this.showDownloadDialog = false;
-    downloadContentService.downloadContent('shows', seasonToken).then(data => console.log(data));
+    downloadContentService.downloadContent('seasons', seasonToken).then(data => console.log(data));
   }
 }
 </script>

@@ -11,7 +11,7 @@ const MANAGER_DOMAIN = 'https://192.168.1.205:1338';
 
 (async () => {
   const { token, filePath, type, rootDir } = workerData;
-  const typeToRouteMap = { 'movies': 'm', 'shows': 's' };
+  const typeToRouteMap = { 'movie': 'm', 'season': 's' };
   const url = `${MANAGER_DOMAIN}/api/checkout/${typeToRouteMap[type]}`;
   const noPaddingToken = token.replace(/\./g, '');
 
@@ -34,6 +34,9 @@ const MANAGER_DOMAIN = 'https://192.168.1.205:1338';
     responseType: 'stream',
     data: { token },
   });
+
+  parentPort.postMessage({ status: 'downloading', value: 0, token, type });
+
   const totalSize = headers['content-length'];
 
   // Throttle how frequently we notify of download updates to once every 5% of progress
@@ -43,7 +46,7 @@ const MANAGER_DOMAIN = 'https://192.168.1.205:1338';
     received += chunk.length
     const progress = percentComplete(received, totalSize)
     if (progress > lastProgressUpdate && progress % 5 === 0) {
-      console.log("GOT SOME MORE DATA  ", progress), "%";
+      parentPort.postMessage({ status: 'downloading', value: progress });
       lastProgressUpdate = progress;
     }
   });
@@ -52,16 +55,14 @@ const MANAGER_DOMAIN = 'https://192.168.1.205:1338';
   data.pipe(writer);
 
   writer.on('finish', async () => {
-    console.log('beginning decompression...');
+    parentPort.postMessage({ status: 'unpacking', token, type });
     await unpackFile();
-    console.log('moving media...');
+    parentPort.postMessage({ status: 'processing', token, type });
     await moveMedia();
-    console.log('cleaning up files...');
+    parentPort.postMessage({ status: 'cleaning', token, type });
     await removeTar();
     await removeTempDir();
   });
-
-  parentPort.postMessage("Howdy!!");
 
   // === Helper functions: ===
 

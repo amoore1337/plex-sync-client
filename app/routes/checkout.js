@@ -5,7 +5,7 @@ const { downloadContent } = require('../services/manager-comm.service');
 module.exports = (router) => {
   router.post('/movies', wrapAsync(async (req, res) => {
     const token = req.body.token;
-    await downloadContent(token, 'movies');
+    await downloadContent(token, 'movie');
     // Create "pending" db record
     // Listen for download status updates
     // Listen for finished and remove pending record + update local_tv_ tables
@@ -14,9 +14,9 @@ module.exports = (router) => {
   }));
 
   // These should be POST requests probably
-  router.post('/shows', wrapAsync(async (req, res) => {
+  router.post('/seasons', wrapAsync(async (req, res) => {
     const token = req.body.token;
-    await downloadContent(token, 'shows');
+    await downloadContent(token, 'season');
     // Create "pending" db record
     // Listen for download status updates
     // Listen for finished and remove pending record + update local_tv_ tables

@@ -5,7 +5,7 @@ import axios from 'axios';
 // }
 
 class DownloadContentService {
-  public async downloadContent(type: 'shows' | 'movies', token: string) {
+  public async downloadContent(type: 'seasons' | 'movies', token: string) {
     return axios.post(`/api/checkout/${type}`, { token }).then((res: any) => res.data as any);
   }
 }
