@@ -3,7 +3,7 @@ const path = require('path');
 const config = require('nconf');
 const { promisify } = require('util');
 const { encode } = require('url-safe-base64');
-const { sumBy, find, findIndex } = require('lodash');
+const { sumBy, find, findIndex, merge } = require('lodash');
 const disk = require('diskusage');
 const os = require('os');
 const readDirAsync = promisify(fs.readdir);
@@ -58,6 +58,8 @@ exports.getExistingMoviesMap = getExistingMoviesMap;
 
 exports.getExistingTvShowsMap = getExistingTvShowsMap;
 
+exports.mapMediaDir = mapMediaDir;
+
 exports.getPathFromHash = getPathFromHash;
 
 exports.getMoviePath = getMoviePath;
@@ -66,12 +68,12 @@ exports.getTvPath = getTvPath;
 
 // ===========================================================================
 
-function getExistingMoviesMap() {
-  return mapDir(getMoviePath(), { extensions: /\.(mp4|mkv|avi|m4v)$/g, basePath: getMoviePath() });
+async function getExistingMoviesMap() {
+  return await mapMediaDir(getMoviePath());
 }
 
-function getExistingTvShowsMap() {
-  return mapDir(getTvPath(), { extensions: /\.(mp4|mkv|avi|m4v)$/g, basePath: getTvPath() });
+async function getExistingTvShowsMap() {
+  return await mapMediaDir(getTvPath());
 }
 
 function getMoviePath() {
@@ -114,6 +116,11 @@ function filePathToHash(filePath) {
 
 function getPathFromHash(hash) {
   return Buffer.from(hash, 'base64').toString('ascii');
+}
+
+// Thin wrapper around mapDir to keep from pasting the same regex all over the place
+async function mapMediaDir(dirPath, options) {
+  return mapDir(dirPath, merge({ extensions: /\.(mp4|mkv|avi|m4v)$/g, basePath: dirPath }, options));
 }
 
 // Options can contain a whitelisted list of file extensions expressed as a regex.

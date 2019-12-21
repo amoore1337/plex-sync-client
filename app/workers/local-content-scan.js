@@ -50,9 +50,9 @@ async function cleanupRemovedMovies(moviesFromFs, db) {
   try {
     const existingMovies = await db.all(`SELECT * from local_movies`);
 
-    existingMovies.forEach(existingMovie => {
+    existingMovies.forEach(async existingMovie => {
       if (findIndex(moviesFromFs, (r) => r.token === existingMovie.token) < 0) {
-        db.run(deleteByTokenQuery('local_movies', existingMovie.token));
+        await db.run(deleteByTokenQuery('local_movies', existingMovie.token));
       }
     });
   } catch (error) {

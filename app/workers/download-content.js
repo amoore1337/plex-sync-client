@@ -46,7 +46,7 @@ const MANAGER_DOMAIN = 'https://192.168.1.205:1338';
     received += chunk.length
     const progress = percentComplete(received, totalSize)
     if (progress > lastProgressUpdate && progress % 5 === 0) {
-      parentPort.postMessage({ status: 'downloading', value: progress });
+      parentPort.postMessage({ status: 'downloading', value: progress, token, type });
       lastProgressUpdate = progress;
     }
   });
