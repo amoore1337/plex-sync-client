@@ -1,4 +1,5 @@
 const Database = require('sqlite-async');
+const { merge } = require('lodash');
 
 // Using user_version to determine if/what migrations are needed from array
 const MIGRATIONS = [
@@ -125,12 +126,20 @@ exports.runMigrations = async function(db) {
   });
 }
 
-exports.insertQuery = function(tableName, values) {
-  return `
-    INSERT INTO ${tableName} ( ${Object.keys(values).toString()} )
-    VALUES ( ${sanitizedQueryValues(...Object.values(values))} );
-  `;
+exports.findOrCreate = async function(db, tableName, values) {
+  let query = `SELECT *, ROWID FROM ${tableName} WHERE `;
+  for (const [key, value] of Object.entries(values)) {
+    query += `${key} = ${sanitizedQueryValues(value)} AND `
+  }
+
+  const existingRecord = await db.get(query.slice(0, -4));
+  if (existingRecord) {
+    return;
+  };
+
+  await db.run(insertQuery(tableName, merge(values, { created_at: Date.now() })));
 }
+
 
 exports.updateQuery = function(tableName, values) {
   let query = `UPDATE ${tableName} SET `;
@@ -142,7 +151,16 @@ exports.updateQuery = function(tableName, values) {
 
 }
 
+exports.insertQuery = insertQuery
+
 exports.sanitizedQueryValues = sanitizedQueryValues;
+
+function insertQuery(tableName, values) {
+  return `
+    INSERT INTO ${tableName} ( ${Object.keys(values).toString()} )
+    VALUES ( ${sanitizedQueryValues(...Object.values(values))} );
+  `;
+}
 
 function sanitizedQueryValues() {
   let sanitizedValues = '';

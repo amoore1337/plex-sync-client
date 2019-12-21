@@ -10,7 +10,7 @@
           <download-indicator :status="show.status" :downloadable="false"></download-indicator>
         </td>
         <template v-slot:expanded>
-          <tv-season-chip v-for="season in show.seasons" :key="season.name" :season="season" @season-download-requested="onSeasonDownloadRequested(show, season)"></tv-season-chip>
+          <tv-season-chip v-for="season in sortContent(show.seasons)" :key="season.name" :season="season" @season-download-requested="onSeasonDownloadRequested(show, season)"></tv-season-chip>
         </template>
       </grid-row>
     </grid>
@@ -24,7 +24,7 @@
           Please ensure you have approximately <strong>{{selected.season.size | numFormat('0.0b')}}</strong> of free space available on your server before continuing.
           <span class="font-weight-bold">Episodes:</span>
           <div class="episodes-container">
-            <tv-episode-chip v-for="episode in sortEpisodes(selected.season.episodes)" :key="episode.name" :episode="episode"></tv-episode-chip>
+            <tv-episode-chip v-for="episode in sortContent(selected.season.episodes)" :key="episode.name" :episode="episode"></tv-episode-chip>
           </div>
         </v-card-text>
         <v-card-actions>
@@ -89,8 +89,8 @@ export default class TvGrid extends Vue {
     return orderBy(this.tvShows, this.sortCol.value, this.sortCol.direction);
   }
 
-  private sortEpisodes(episodes: any) {
-    return orderBy(episodes, 'name', 'asc');
+  private sortContent(content: any) {
+    return orderBy(content, 'name', 'asc');
   }
 
   private onSeasonDownloadRequested(show: any, season: any) {
@@ -100,7 +100,7 @@ export default class TvGrid extends Vue {
 
   private initiateDownload(seasonToken: string) {
     this.showDownloadDialog = false;
-    downloadContentService.downloadContent('seasons', seasonToken).then(data => console.log(data));
+    downloadContentService.downloadContent('seasons', seasonToken).then(() => this.$emit('refresh-requested'));
   }
 }
 </script>
