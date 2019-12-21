@@ -82,7 +82,7 @@ export default class MoviesGrid extends Vue {
 
   private initiateDownload(token: string) {
     this.showDownloadDialog = false;
-    downloadContentService.downloadContent('movies', token).then(data => console.log(data));
+    downloadContentService.downloadContent('movies', token).then(() => this.$emit('refresh-requested'));
   }
 }
 </script>

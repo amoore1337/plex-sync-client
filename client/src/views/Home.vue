@@ -7,8 +7,8 @@
       <div class="grid-controls">
         <content-toggle></content-toggle>
       </div>
-      <tv-grid v-bind:tvShows="content.tv" v-bind:loading="loadingContent"  v-if="contentType === 'tv'"></tv-grid>
-      <movies-grid v-bind:movies="content.movies" v-bind:loading="loadingContent"  v-else></movies-grid>
+      <tv-grid v-bind:tvShows="content.tv" v-bind:loading="loadingContent" @refresh-requested="loadContent(true)" v-if="contentType === 'tv'"></tv-grid>
+      <movies-grid v-bind:movies="content.movies" v-bind:loading="loadingContent" @refresh-requested="loadContent(true)" v-else></movies-grid>
     </div>
   </div>
 </template>
@@ -42,9 +42,9 @@ export default class Home extends Vue {
     this.loadContent();
   }
 
-  private loadContent() {
+  private loadContent(force = false) {
     const routeMap: {[key: string]: string} = { tv: 'shows', movies: 'movies' };
-    if (!this.content[this.contentType].length) {
+    if (force || !this.content[this.contentType].length) {
       this.loadingContent = true;
       return axios.get(`/api/${routeMap[this.contentType]}`).then((res: any) => {
         this.content[this.contentType] = res.data;

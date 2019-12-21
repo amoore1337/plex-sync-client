@@ -4,19 +4,27 @@
       <div class="half top"></div>
       <div class="half bottom"></div>
     </div>
-    <v-btn v-else @click="$emit('download-requested')" color="primary" small>
+    <v-btn v-if="showDownloadButton && status === 'not-downloaded'" @click="$emit('download-requested')" color="primary" small>
       <v-icon dark medium>mdi-download</v-icon>
     </v-btn>
+    <div v-if="status === 'in-progress'">
+      <infinite-loading></infinite-loading>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
 import { Component, Prop, Vue } from 'vue-property-decorator';
 import { orderBy } from 'lodash';
+import InfiniteLoading from '@/components/InfiniteLoading.vue';
 
 type IDownloadStatus = 'completed' | 'incomplete' | 'not-downloaded' | 'in-progress';
 
-@Component
+@Component({
+  components: {
+    InfiniteLoading,
+  },
+})
 export default class TvGrid extends Vue {
   @Prop() private status!: IDownloadStatus;
   @Prop() private downloadable!: boolean;

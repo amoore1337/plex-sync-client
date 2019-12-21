@@ -1,7 +1,7 @@
 const { getPathFromHash, mapMediaDir, getMoviePath, getTvPath } = require('./file.service');
 const { dbConnection, dbClose, insertQuery, updateQuery } = require('../db/db.helper');
 
-exports.createPendingDownloadRecord = async function (token, type) {
+exports.startPendingContent = async function (token, type) {
   const db = await dbConnection();
   const tableName = type === 'movie' ? 'remote_movies' : 'remote_tv_show_seasons';
   const contentRequesting = await db.get(`SELECT * FROM ${tableName} WHERE token = "${token}"`);
@@ -13,8 +13,9 @@ exports.createPendingDownloadRecord = async function (token, type) {
     size: contentRequesting.size,
     created_at: Date.now(),
   }));
-
   await dbClose(db);
+
+  await updateContent(token, type, 'pending');
 }
 
 exports.updateContentStatus = async function(token, type, status) {

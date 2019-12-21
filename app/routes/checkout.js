@@ -1,5 +1,4 @@
 const { wrapAsync } = require('../services/router.service');
-const { Worker } = require('worker_threads');
 const { downloadContent } = require('../services/manager-comm.service');
 
 module.exports = (router) => {
