@@ -2,6 +2,7 @@ const axios = require('axios');
 const { Worker } = require('worker_threads');
 const { getPathFromHash, getMoviePath, getTvPath } = require('./file.service');
 const { startPendingContent, updateContentStatus, completeContent } = require('./content-state-manager.service');
+const { refreshPlexLibraryForType } = require('./plex-comm.service');
 
 const MANAGER_DOMAIN = 'https://192.168.1.205:1338';
 // const MANAGER_DOMAIN = 'https://localhost:1338';
@@ -33,6 +34,9 @@ exports.downloadContent = async function (token, type) {
   worker.on('exit', async statusCode => {
     if (statusCode === 0) {
       await completeContent(token, type);
+      // Update Plex library with new content:
+      const plexType = ['show', 'season', 'episode'].indexOf(type) > -1 ? 'show' : movie;
+      refreshPlexLibraryForType(plexType);
     }
   });
 

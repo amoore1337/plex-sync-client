@@ -87,6 +87,26 @@ const MIGRATIONS = [
         created_at INTEGER
       )
     `,
+    // This whole Plex sync is pretty hacky, including the schema.
+    //
+    // Feels wrong to record a token like this in the db but should
+    // be safe enough for now since the library is only accessible inside
+    // the local network.
+    //
+    // Plex doesn't give a great way of obtaining a token outside of inspecting
+    // requests from the UI or asking the User to authenticate. Will have to
+    // investigate other solutions to make this suck less. Or at the very least,
+    // salt/hash the token in the db to just feel less icky.
+    `
+      CREATE TABLE plex_configs (
+        hostname TEXT,
+        port INTEGER,
+        token TEXT,
+        movies_section_id INTEGER,
+        tv_shows_section_id INTEGER,
+        created_at INTEGER
+      )
+    `,
   ]
 ];
 
