@@ -30,10 +30,10 @@ async function syncRemoteMovies(db) {
 
 async function updateOrCreateMovie(remoteMovie, db) {
   try {
-    const localMovie = await db.get(selectByTokenQuery('local_movies', remoteMovie.id));
-    const existingRemoteMovie = await db.get(selectByTokenQuery('remote_movies', remoteMovie.id));
+    const localMovie = await db.get(selectByTokenQuery('local_movies', remoteMovie.token));
+    const existingRemoteMovie = await db.get(selectByTokenQuery('remote_movies', remoteMovie.token));
     const pendingMovie = await db.get(`
-      SELECT * FROM pending_download_requests WHERE token = "${remoteMovie.id}" AND type = "movie"
+      SELECT * FROM pending_download_requests WHERE token = "${remoteMovie.token}" AND type = "movie"
     `);
 
     if (localMovie) {
@@ -54,7 +54,7 @@ async function updateOrCreateMovie(remoteMovie, db) {
     } else if (!existingRemoteMovie) {
       await db.run(insertQuery('remote_movies', {
         name: remoteMovie.name,
-        token: remoteMovie.id,
+        token: remoteMovie.token,
         size: remoteMovie.size,
         status: remoteMovie.status,
         created_at: Date.now()
@@ -70,7 +70,7 @@ async function cleanupRemovedMovies(remoteMovies, db) {
     const existingMovies = await db.all(`SELECT * from remote_movies`);
 
     existingMovies.forEach(async existingMovie => {
-      if (findIndex(remoteMovies, (r) => r.id === existingMovie.token) < 0) {
+      if (findIndex(remoteMovies, (r) => r.token === existingMovie.token) < 0) {
         await db.run(deleteByTokenQuery('remote_movies', existingMovie.token));
       }
     });
@@ -91,13 +91,13 @@ async function syncRemoteTvShows(db) {
 
 async function updateOrCreateShow(remoteShow, db) {
   try {
-    const existingRemoteShow = await db.get(selectByTokenQuery('remote_tv_shows', remoteShow.id));
+    const existingRemoteShow = await db.get(selectByTokenQuery('remote_tv_shows', remoteShow.token));
 
     // Derp, this is fundamentally wrong, we haven't written any episodes to the db yet
     // so these counts won't be right the first time this script is run
     let episodeCount = {
-      local: await getEpisodeCountForShow(remoteShow.id, 'local', db),
-      remote: await getEpisodeCountForShow(remoteShow.id, 'remote', db)
+      local: await getEpisodeCountForShow(remoteShow.token, 'local', db),
+      remote: await getEpisodeCountForShow(remoteShow.token, 'remote', db)
     };
 
     // Determine status of show
@@ -121,7 +121,7 @@ async function updateOrCreateShow(remoteShow, db) {
       // Insert shows
       await db.run(insertQuery('remote_tv_shows', {
         name: remoteShow.name,
-        token: remoteShow.id,
+        token: remoteShow.token,
         size: remoteShow.size,
         status: remoteShow.status,
         created_at: Date.now()
@@ -138,7 +138,7 @@ async function cleanupRemovedShows(remoteShows, db) {
     const existingShows = await db.all(`SELECT *, ROWID from remote_tv_shows`);
 
     existingShows.forEach(async existingShow => {
-      if (findIndex(remoteShows, (r) => r.id === existingShow.token) < 0) {
+      if (findIndex(remoteShows, (r) => r.token === existingShow.token) < 0) {
         // Find any Seasons we need to remove:
         const seasons = await db.all(`
           SELECT ROWID FROM remote_tv_show_seasons WHERE remote_tv_show_id = ${existingShow.rowid}
@@ -157,7 +157,7 @@ async function cleanupRemovedShows(remoteShows, db) {
         `);
 
         // Finally, delete the show
-        await db.run(deleteByTokenQuery('remote_tv_shows', existingShow.id));
+        await db.run(deleteByTokenQuery('remote_tv_shows', existingShow.token));
       }
     });
   } catch (error) {
@@ -170,7 +170,7 @@ async function syncRemoteSeasonsForShow(remoteShow, db) {
     const seasonsFromRemote = remoteShow.children;
 
     // Select the ROWID from the show to build the association for the season
-    const { rowid } = await db.get(selectByTokenQuery('remote_tv_shows', remoteShow.id));
+    const { rowid } = await db.get(selectByTokenQuery('remote_tv_shows', remoteShow.token));
     if (!rowid) {
       throw Error('Show does not exist in DB...')
     }
@@ -187,12 +187,12 @@ async function syncRemoteSeasonsForShow(remoteShow, db) {
 
 async function updateOrCreateSeason(remoteSeason, showId, db) {
   try {
-    const existingRemoteSeason = await db.get(selectByTokenQuery('remote_tv_show_seasons', remoteSeason.id));
+    const existingRemoteSeason = await db.get(selectByTokenQuery('remote_tv_show_seasons', remoteSeason.token));
 
     // See notes about show, same problem applies here...
     let episodeCount = {
-      local: await getEpisodeCountForSeason(remoteSeason.id, 'local', db),
-      remote: await getEpisodeCountForSeason(remoteSeason.id, 'remote', db)
+      local: await getEpisodeCountForSeason(remoteSeason.token, 'local', db),
+      remote: await getEpisodeCountForSeason(remoteSeason.token, 'remote', db)
     };
 
     // Determine status of show
@@ -216,7 +216,7 @@ async function updateOrCreateSeason(remoteSeason, showId, db) {
       // Insert shows
       await db.run(insertQuery('remote_tv_show_seasons', {
         name: remoteSeason.name,
-        token: remoteSeason.id,
+        token: remoteSeason.token,
         size: remoteSeason.size,
         status: remoteSeason.status,
         remote_tv_show_id: showId,
@@ -231,7 +231,7 @@ async function updateOrCreateSeason(remoteSeason, showId, db) {
 
 async function cleanupRemovedSeasons(remoteShow, db) {
   try {
-    const existingShow = await db.get(selectByTokenQuery('remote_tv_shows', remoteShow.id))
+    const existingShow = await db.get(selectByTokenQuery('remote_tv_shows', remoteShow.token))
     const existingSeasons = await db.all(`
       SELECT
         *, ROWID
@@ -240,7 +240,7 @@ async function cleanupRemovedSeasons(remoteShow, db) {
     `);
 
     existingSeasons.forEach(async existingSeason => {
-      if (findIndex(remoteShow.children, (r) => r.id === existingSeason.token) < 0) {
+      if (findIndex(remoteShow.children, (r) => r.token === existingSeason.token) < 0) {
 
         // Delete all episodes in season:
         await db.run(`
@@ -265,7 +265,7 @@ async function syncRemoteEpisodesForSeason(remoteSeason, db) {
     const episodesFromRemote = remoteSeason.children;
 
     // Select the ROWID from the season to build the association for the episodes
-    const { rowid } = await db.get(selectByTokenQuery('remote_tv_show_seasons', remoteSeason.id));
+    const { rowid } = await db.get(selectByTokenQuery('remote_tv_show_seasons', remoteSeason.token));
     if (!rowid) {
       throw Error('Season does not exist in DB...')
     }
@@ -282,10 +282,10 @@ async function syncRemoteEpisodesForSeason(remoteSeason, db) {
 
 async function updateOrCreateEpisode(remoteEpisode, seasonId, db) {
   try {
-    const localEpisode = await db.get(selectByTokenQuery('local_tv_show_episodes', remoteEpisode.id));
-    const existingRemoteEpisode = await db.get(selectByTokenQuery('remote_tv_show_episodes', remoteEpisode.id));
+    const localEpisode = await db.get(selectByTokenQuery('local_tv_show_episodes', remoteEpisode.token));
+    const existingRemoteEpisode = await db.get(selectByTokenQuery('remote_tv_show_episodes', remoteEpisode.token));
     const pendingEpisode = await db.get(`
-      SELECT * FROM pending_download_requests WHERE token = "${remoteEpisode.id}" AND type = "tv"
+      SELECT * FROM pending_download_requests WHERE token = "${remoteEpisode.token}" AND type = "tv"
     `);
 
     if (localEpisode) {
@@ -306,7 +306,7 @@ async function updateOrCreateEpisode(remoteEpisode, seasonId, db) {
     } else if (!existingRemoteEpisode) {
       await db.run(insertQuery('remote_tv_show_episodes', {
         name: remoteEpisode.name,
-        token: remoteEpisode.id,
+        token: remoteEpisode.token,
         size: remoteEpisode.size,
         status: remoteEpisode.status,
         remote_tv_show_season_id: seasonId,
@@ -320,7 +320,7 @@ async function updateOrCreateEpisode(remoteEpisode, seasonId, db) {
 
 async function cleanupRemovedEpisodes(remoteSeason, db) {
   try {
-    const existingSeason = await db.get(selectByTokenQuery('remote_tv_show_seasons', remoteSeason.id))
+    const existingSeason = await db.get(selectByTokenQuery('remote_tv_show_seasons', remoteSeason.token))
     const existingEpisodes = await db.all(`
       SELECT
         *, ROWID
@@ -329,7 +329,7 @@ async function cleanupRemovedEpisodes(remoteSeason, db) {
     `);
 
     existingEpisodes.forEach(async existingEpisode => {
-      if (findIndex(remoteSeason.children, (r) => r.id === existingEpisode.token) < 0) {
+      if (findIndex(remoteSeason.children, (r) => r.token === existingEpisode.token) < 0) {
         // Delete episode:
         await db.run(`
           DELETE FROM remote_tv_show_episodes

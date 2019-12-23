@@ -1,8 +1,48 @@
-const { parseString } = require('xml2js');
+const { dbConnection, dbClose, insertQuery, updateQuery } = require('../db/db.helper');
 const axios = require('axios');
 
-const PLEX_DOMAIN = 'https://192.168.1.205:32400';
-const PLEX_TOKEN = 'zAws9zrtH3z8H744pJXh';
+let PLEX_CLIENT;
+
+exports.savePlexConfig = async function (hostname, token) {
+  let db;
+  try {
+    const existingConfig = await getPlexConfig();
+
+    db = await dbConnection();
+    if (existingConfig) {
+      await db.run(
+        updateQuery(
+          'plex_configs',
+          {
+            hostname,
+            toke,
+            created_at: Date.now(),
+          }
+        ) + ` WHERE client_id = "${existingConfig.hostname}"`
+      );
+    } else {
+      await db.run(insertQuery('plex_configs', {
+        hostname,
+        port: 32400,
+        token,
+        created_at: Date.now(),
+      }));
+    }
+
+  } catch (error) {
+    console.error(error);
+  } finally {
+    await dbClose(db);
+  }
+}
+
+exports.getPlexDomain = async function () {
+  const client = await getPlexConfig();
+
+  return client.hostname;
+}
+
+exports.getPlexConfig = getPlexConfig;
 
 exports.fetchPlexSections = fetchPlexSections;
 
@@ -19,11 +59,36 @@ exports.refreshPlexLibraryForType = async function(type) {
 }
 
 async function fetchPlexSections() {
-  response = await axios.get(`${PLEX_DOMAIN}/library/sections?X-Plex-Token=${PLEX_TOKEN}`);
-  return response.data;
+  try {
+    const plexClient = await getPlexConfig();
+    response = await axios.get(`${plexClient.hostname}/library/sections?X-Plex-Token=${plexClient.token}`);
+    return response.data;
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 async function refreshPlexSection(sectionId) {
-  response = await axios.get(`${PLEX_DOMAIN}/library/sections/${sectionId}/refresh?X-Plex-Token=${PLEX_TOKEN}`);
-  return response.data;
+  try {
+    const plexClient = await getPlexConfig();
+    response = await axios.get(`${plexClient.hostname}/library/sections/${sectionId}/refresh?X-Plex-Token=${plexClient.token}`);
+    return response.data;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function getPlexConfig() {
+  if (PLEX_CLIENT) { return PLEX_CLIENT; }
+
+  let db;
+  try {
+    db = await dbConnection();
+    // There should only be a single manager config:
+    return await db.get('SELECT * FROM plex_configs');
+  } catch (error) {
+    console.error(error)
+  } finally {
+    await dbClose(db);
+  }
 }

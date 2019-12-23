@@ -6,13 +6,11 @@ const compressing = require('compressing');
 const { parentPort, workerData } = require('worker_threads');
 
 const UNPACK_DIR = '../../unpack';
-const MANAGER_DOMAIN = 'https://192.168.1.205:1338';
-// const MANAGER_DOMAIN = 'https://localhost:1338';
 
 (async () => {
-  const { token, filePath, type, rootDir } = workerData;
+  const { token, filePath, type, rootDir, clientId, oauthToken, hostname } = workerData;
   const typeToRouteMap = { 'movie': 'm', 'season': 's' };
-  const url = `${MANAGER_DOMAIN}/api/checkout/${typeToRouteMap[type]}`;
+  const url = `${hostname}/api/checkout/${typeToRouteMap[type]}`;
   const noPaddingToken = token.replace(/\./g, '');
 
   // The tar file retrieved from Manager:
@@ -33,6 +31,10 @@ const MANAGER_DOMAIN = 'https://192.168.1.205:1338';
     method: 'POST',
     responseType: 'stream',
     data: { token },
+    headers: {
+      Authorization: `Bearer ${oauthToken}`,
+      Client_Id: clientId
+    }
   });
 
   parentPort.postMessage({ status: 'downloading', value: 0, token, type });

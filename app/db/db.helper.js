@@ -107,6 +107,14 @@ const MIGRATIONS = [
         created_at INTEGER
       )
     `,
+    `
+      CREATE TABLE manager_configs (
+        hostname TEXT,
+        client_id TEXT,
+        client_secret TEXT,
+        created_at INTEGER
+      )
+    `,
   ]
 ];
 
