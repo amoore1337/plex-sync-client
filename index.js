@@ -32,7 +32,7 @@ winston.add(logger);
 logger.info('[APP] Starting server initialization');
 
 process.on('uncaughtException', function (exception) {
-  logger.error(exception);
+  console.error(exception);
 });
 
 process.on('unhandledRejection', (reason, p) => {
