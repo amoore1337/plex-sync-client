@@ -62,6 +62,7 @@ exports.downloadContent = async function (token, type) {
       console.log('on exit!');
       await completeContent(token, type);
       // Update Plex library with new content:
+      console.log('seting up update to plex: ', type)
       const plexType = ['show', 'season', 'episode'].indexOf(type) > -1 ? 'show' : 'movie';
       console.log('updating plex');
       await refreshPlexLibraryForType(plexType);
