@@ -40,6 +40,7 @@ module.exports = async (callback) => {
   try {
     const db = await dbConnection();
     await db.run('PRAGMA journal_mode = WAL');
+    console.log(db.get('PRAGMA journal_mode'));
     await runMigrations(db);
     await dbClose(db);
   } catch (error) {
