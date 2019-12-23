@@ -79,17 +79,21 @@ async function getExistingTvShowsMap() {
 function getMoviePath() {
   if (MOVIE_PATH) { return MOVIE_PATH }
   let movieDir = config.get('MOVIE_DIR') || '/movies';
+  console.log('start: ', movieDir);
 
   const absolutePath = path.resolve(PROJECT_ROOT, movieDir);
+  console.log('absolute: ', absolutePath);
   if (fs.existsSync(absolutePath)) {
     MOVIE_PATH = absolutePath;
   } else {
     // Try looking in relative path
     const relativePath = path.relative(PROJECT_ROOT, `.${movieDir}`);
+    console.log('relative: ', relativePath);
     if (fs.existsSync(relativePath)) {
       MOVIE_PATH = relativePath
     }
   }
+  console.log('MOVIE PATH: ', MOVIE_PATH);
   return MOVIE_PATH;
 }
 
