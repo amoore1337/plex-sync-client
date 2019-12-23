@@ -54,7 +54,7 @@ exports.completeContent = async function(token, type) {
     }
 
     db = await dbConnection();
-    console.log(db.get('PRAGMA journal_mode'));
+    console.log(await db.get('PRAGMA journal_mode'));
     console.log('deleting pending record');
     await db.run(`DELETE FROM pending_download_requests WHERE token = "${token}";`)
     console.log('finished');
