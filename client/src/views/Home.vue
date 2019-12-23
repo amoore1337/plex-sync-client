@@ -88,13 +88,17 @@ export default class Home extends Vue {
 
   private openSettings() {
     axios.get('/api/manager-config').then((response: any) => {
-      console.log(response.data);
-      this.managerIp = response.data.manager.hostname;
-      this.managerKey = response.data.manager.client_id;
-      this.managerSecret = response.data.manager.client_secret;
+      if (response.data.manager) {
+        this.managerIp = response.data.manager.hostname;
+        this.managerKey = response.data.manager.client_id;
+        this.managerSecret = response.data.manager.client_secret;
+      }
 
-      this.plexIp = response.data.plex.hostname;
-      this.plexToken = response.data.plex.token;
+      if (response.data.plex) {
+        this.plexIp = response.data.plex.hostname;
+        this.plexToken = response.data.plex.token;
+      }
+
       this.showSettings = true;
     });
   }
