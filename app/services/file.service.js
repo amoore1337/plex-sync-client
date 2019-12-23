@@ -129,6 +129,7 @@ async function mapMediaDir(dirPath, options) {
 
 // Options can contain a whitelisted list of file extensions expressed as a regex.
 function mapDir(dirPath, options = {}) {
+  console.log('dirpath: ', dirPath);
   return readDirAsync(dirPath).then(files => {
     const dirMap = [];
     const promises = [];
