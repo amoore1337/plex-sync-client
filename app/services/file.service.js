@@ -149,7 +149,7 @@ function mapDir(dirPath, options = {}) {
         size: stats.size,
         children: [],
       };
-      if (details.isDir) {
+      if (details.isDir && details.children) {
         promises.push(mapDir(filePath, options).then(map => { details.children = map; details.size = details.size + sumBy(map, 'size') }));
       }
       dirMap.push(details);
