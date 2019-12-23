@@ -39,6 +39,7 @@ module.exports = async (callback) => {
   // Run any pending migrations when the app starts up:
   try {
     const db = await dbConnection();
+    console.log(await db.run('PRAGMA journal_mode'))
     await runMigrations(db);
     await dbClose(db);
   } catch (error) {
