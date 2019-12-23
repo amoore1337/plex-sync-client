@@ -100,8 +100,8 @@ function getMoviePath() {
 function getTvPath() {
   if (TV_PATH) { return TV_PATH }
   let tvDir = config.get('TV_DIR') || '/tv_shows';
-  console.log('absolute: ', absolutePath);
   const absolutePath = path.resolve(PROJECT_ROOT, tvDir);
+  console.log('absolute: ', absolutePath);
   if (fs.existsSync(absolutePath)) {
     TV_PATH = absolutePath;
   } else {
