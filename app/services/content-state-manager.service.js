@@ -60,6 +60,18 @@ exports.completeContent = async function(token, type) {
   }
 }
 
+exports.deletePendingQueue = async function() {
+  let db;
+  try {
+    db = await dbConnection();
+    await db.run('DELETE FROM pending_download_requests');
+  } catch (error) {
+    console.error(error);
+  } finally {
+    await dbClose(db)
+  }
+}
+
 async function updatePendingDownloadRecord(token, status) {
   const db = await dbConnection();
   await db.run(updateQuery('pending_download_requests', { last_event: status }) + ` WHERE token = "${token}"`);

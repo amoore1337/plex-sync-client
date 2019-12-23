@@ -8,6 +8,7 @@ const localContentScan = require('./workers/local-content-scan');
 const remoteContentScan = require('./workers/remote-content-scan');
 const { dbConnection, dbClose, runMigrations } = require('./db/db.helper');
 const { getManagerConfig } = require('./services/manager-config.service');
+const { deletePendingQueue } = require('./services/content-state-manager.service');
 
 let app;
 
@@ -46,6 +47,9 @@ module.exports = async (callback) => {
 
   // cron.schedule('*/1 * * * *', remoteContentScan);
   try {
+    // Empty queue on start
+    await deletePendingQueue();
+
     const managerConfig = await getManagerConfig();
     // Only load content on startup if config is present.
     if (managerConfig) {
