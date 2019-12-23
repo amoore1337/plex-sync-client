@@ -46,14 +46,14 @@ exports.completeContent = async function(token, type) {
   console.log('completing!');
   let db;
   try {
+    db = await dbConnection();
     if (type === 'movie') {
       console.log('marking movie as completed');
-      await markMovieAsCompleted(token);
+      await markMovieAsCompleted(db, token);
     } else if (type === 'season') {
-      await markSeasonAsCompleted(token);
+      // await markSeasonAsCompleted(token);
     }
 
-    db = await dbConnection();
     console.log(await db.get('PRAGMA journal_mode'));
     console.log('deleting pending record');
     await db.run(`DELETE FROM pending_download_requests WHERE token = "${token}";`)
@@ -105,10 +105,10 @@ async function updateContent(token, type, status) {
   await dbClose(db);
 }
 
-async function markMovieAsCompleted(token) {
-  let db;
-  try {
-    db = await dbConnection();
+async function markMovieAsCompleted(db, token) {
+  // let db;
+  // try {
+    // db = await dbConnection();
     const dirMap = await getExistingMoviesMap();
     const fsMovie = find(dirMap, { token });
 
@@ -122,11 +122,11 @@ async function markMovieAsCompleted(token) {
 
     console.log('updating remote movie');
     await db.run(updateQuery('remote_movies', { status: 'completed' }) + ` WHERE token = "${token}"`);
-  } catch (error) {
-    console.error(error);
-  } finally {
-    await dbClose(db);
-  }
+  // } catch (error) {
+  //   console.error(error);
+  // } finally {
+  //   await dbClose(db);
+  // }
 }
 
 async function markSeasonAsCompleted(token) {
