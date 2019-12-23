@@ -9,7 +9,6 @@ module.exports = (router) => {
   }));
 
   router.post('/', wrapAsync(async (req, res) => {
-    console.log('called???', req.body);
     const hostname = req.body.hostname;
     const clientId = req.body.client_id;
     const clientSecret = req.body.client_secret;

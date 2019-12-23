@@ -15,10 +15,10 @@ exports.savePlexConfig = async function (hostname, token) {
           'plex_configs',
           {
             hostname,
-            toke,
+            token,
             created_at: Date.now(),
           }
-        ) + ` WHERE client_id = "${existingConfig.hostname}"`
+        ) + ` WHERE hostname = "${existingConfig.hostname}"`
       );
     } else {
       await db.run(insertQuery('plex_configs', {

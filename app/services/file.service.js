@@ -4,7 +4,7 @@ const config = require('nconf');
 const { promisify } = require('util');
 const { encode } = require('url-safe-base64');
 const { sumBy, find, findIndex, merge } = require('lodash');
-const disk = require('diskusage');
+const disk = require('check-disk-space');
 const os = require('os');
 const readDirAsync = promisify(fs.readdir);
 
@@ -16,8 +16,8 @@ let TV_PATH;
 
 exports.getAvailableDriveSpace = async function() {
   try {
-    const { available } = await disk.check(OS_ROOT);
-    return available
+    const { free } = await disk(OS_ROOT);
+    return free;
   } catch (err) {
     return 0
   }
