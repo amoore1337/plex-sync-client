@@ -44,6 +44,7 @@ exports.updateContentStatus = async function(token, type, status) {
 
 exports.completeContent = async function(token, type) {
   console.log('completing!');
+  let db;
   try {
     if (type === 'movie') {
       console.log('marking movie as completed');
@@ -52,7 +53,7 @@ exports.completeContent = async function(token, type) {
       await markSeasonAsCompleted(token);
     }
 
-    const db = await dbConnection();
+    db = await dbConnection();
     console.log('deleting pending record');
     await db.run(`DELETE FROM pending_download_requests WHERE token = "${token}";`)
     console.log('finished');
