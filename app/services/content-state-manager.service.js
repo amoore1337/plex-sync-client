@@ -44,10 +44,10 @@ exports.updateContentStatus = async function(token, type, status) {
 
 exports.completeContent = async function(token, type) {
   console.log('completing!');
-  console.log(await db.get('PRAGMA journal_mode'));
   let db;
   try {
     db = await dbConnection();
+    console.log(await db.get('PRAGMA journal_mode'));
     if (type === 'movie') {
       console.log('marking movie as completed');
       await markMovieAsCompleted(db, token);
