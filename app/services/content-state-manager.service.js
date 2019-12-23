@@ -56,8 +56,7 @@ exports.completeContent = async function(token, type) {
 
     console.log('deleting pending record');
     await db.run(`DELETE FROM pending_download_requests WHERE token = "${token}";`)
-
-
+    console.log('finished');
   } catch (error) {
     console.error(error);
   } finally {
@@ -109,6 +108,7 @@ async function markMovieAsCompleted(db, token) {
   const dirMap = await getExistingMoviesMap();
   const fsMovie = find(dirMap, { token });
 
+  console.log('adding local movie')
   await db.run(insertQuery('local_movies', {
     name: fsMovie.name,
     token: token,
@@ -116,6 +116,7 @@ async function markMovieAsCompleted(db, token) {
     created_at: Date.now(),
   }));
 
+  console.log('updating remote movie');
   await db.run(updateQuery('remote_movies', { status: 'completed' }) + ` WHERE token = "${token}"`);
 }
 

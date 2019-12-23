@@ -52,7 +52,9 @@ exports.refreshPlexSection = refreshPlexSection;
 exports.refreshPlexLibraryForType = async function(type) {
   const sections = await fetchPlexSections();
   sections.MediaContainer.Directory.forEach(async section => {
+    console.log(section.type, ' - ', type);
     if (section.type == type) {
+      console.log('updating section: ', section.key)
       await refreshPlexSection(section.key);
     }
   });
