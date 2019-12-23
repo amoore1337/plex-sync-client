@@ -1,11 +1,15 @@
 const { wrapAsync } = require('../services/router.service');
 const { getManagerConfig, saveManagerConfig } = require('../services/manager-config.service');
-const { savePlexConfig } = require('../services/plex-comm.service');
+const { getPlexConfig, savePlexConfig } = require('../services/plex-comm.service');
 
 module.exports = (router) => {
   router.get('/', wrapAsync(async (_, res) => {
-    const config = await getManagerConfig();
-    res.json(config);
+    const managerConfig = await getManagerConfig();
+    const plexConfig = await getPlexConfig();
+    res.json({
+      manager: managerConfig,
+      plex: plexConfig,
+    });
   }));
 
   router.post('/', wrapAsync(async (req, res) => {

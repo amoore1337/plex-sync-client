@@ -79,29 +79,25 @@ async function getExistingTvShowsMap() {
 function getMoviePath() {
   if (MOVIE_PATH) { return MOVIE_PATH }
   let movieDir = config.get('MOVIE_DIR') || '/movies';
-  // console.log('start: ', movieDir);
 
   const absolutePath = path.resolve(PROJECT_ROOT, movieDir);
-  // console.log('absolute: ', absolutePath);
   if (fs.existsSync(absolutePath)) {
     MOVIE_PATH = absolutePath;
   } else {
     // Try looking in relative path
     const relativePath = path.relative(PROJECT_ROOT, `.${movieDir}`);
-    console.log('relative: ', relativePath);
     if (fs.existsSync(relativePath)) {
       MOVIE_PATH = relativePath
     }
   }
-  // console.log('MOVIE PATH: ', MOVIE_PATH);
   return MOVIE_PATH;
 }
 
 function getTvPath() {
   if (TV_PATH) { return TV_PATH }
   let tvDir = config.get('TV_DIR') || '/tv_shows';
+
   const absolutePath = path.resolve(PROJECT_ROOT, tvDir);
-  console.log('absolute: ', absolutePath);
   if (fs.existsSync(absolutePath)) {
     TV_PATH = absolutePath;
   } else {
@@ -111,7 +107,7 @@ function getTvPath() {
       TV_PATH = relativePath
     }
   }
-  console.log('MOVIE PATH: ', TV_PATH);
+
   return TV_PATH;
 }
 
@@ -130,7 +126,6 @@ async function mapMediaDir(dirPath, options) {
 
 // Options can contain a whitelisted list of file extensions expressed as a regex.
 function mapDir(dirPath, options = {}) {
-  console.log('dirpath: ', dirPath);
   return readDirAsync(dirPath).then(files => {
     const dirMap = [];
     const promises = [];
@@ -151,7 +146,6 @@ function mapDir(dirPath, options = {}) {
         children: [],
       };
       if (details.isDir && details.children.length) {
-        console.log('calling again: ', details);
         promises.push(mapDir(filePath, options).then(map => { details.children = map; details.size = details.size + sumBy(map, 'size') }));
       }
       dirMap.push(details);
