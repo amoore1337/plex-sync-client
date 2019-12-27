@@ -1,7 +1,7 @@
-const { dbConnection, dbClose } = require('../db/db.helper');
+const { database } = require('../db/db.helper');
 
 exports.getAvailableTvShows = async function () {
-  const db = await dbConnection();
+  const db = await database();
   // TODO: The limit 200 is sorta arbitrary, just felt weird to not limit it at all. Might need pagination eventually
   const shows = await db.all('SELECT *, ROWID FROM remote_tv_shows LIMIT 200');
 
@@ -13,34 +13,29 @@ exports.getAvailableTvShows = async function () {
     }
   }
 
-  await dbClose(db)
   return shows;
 }
 
 async function getSeasonsForShow(showId) {
   let db;
   try {
-    db = await dbConnection();
+    db = await database();
     return db.all(`
       SELECT *, ROWID FROM remote_tv_show_seasons WHERE remote_tv_show_id = ${showId}
     `);
   } catch (error) {
     console.error(error);
-  } finally {
-    await dbClose(db);
   }
 }
 
 async function getEpisodesForSeason(seasonId) {
   let db;
   try {
-    db = await dbConnection();
+    db = await database();
     return db.all(`
       SELECT *, ROWID FROM remote_tv_show_episodes WHERE remote_tv_show_season_id = ${seasonId}
     `);
   } catch (error) {
     console.error(error);
-  } finally {
-    await dbClose(db);
   }
 }

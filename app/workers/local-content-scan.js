@@ -1,17 +1,15 @@
 const { getExistingMoviesMap, getExistingTvShowsMap } = require('../services/file.service');
-const { dbConnection, dbClose, insertQuery, updateQuery, sanitizedQueryValues } = require('../db/db.helper');
+const { database, insertQuery, updateQuery, sanitizedQueryValues } = require('../db/db.helper');
 const { findIndex } = require('lodash');
 
 module.exports = async function() {
   let db;
   try {
-    db = await dbConnection();
+    db = await database();
     await syncLocalMovies(db);
     await syncLocalTvShows(db);
   } catch (error) {
     console.error(error);
-  } finally {
-    await dbClose(db);
   }
 }
 

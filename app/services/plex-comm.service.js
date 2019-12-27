@@ -1,4 +1,4 @@
-const { dbConnection, dbClose, insertQuery, updateQuery } = require('../db/db.helper');
+const { database, insertQuery, updateQuery } = require('../db/db.helper');
 const axios = require('axios');
 
 let PLEX_CLIENT;
@@ -8,7 +8,7 @@ exports.savePlexConfig = async function (hostname, token) {
   try {
     const existingConfig = await getPlexConfig();
 
-    db = await dbConnection();
+    db = await database();
     if (existingConfig) {
       await db.run(
         updateQuery(
@@ -31,8 +31,6 @@ exports.savePlexConfig = async function (hostname, token) {
 
   } catch (error) {
     console.error(error);
-  } finally {
-    await dbClose(db);
   }
 }
 
@@ -85,12 +83,10 @@ async function getPlexConfig() {
 
   let db;
   try {
-    db = await dbConnection();
+    db = await database();
     // There should only be a single manager config:
     return await db.get('SELECT * FROM plex_configs');
   } catch (error) {
     console.error(error)
-  } finally {
-    await dbClose(db);
   }
 }

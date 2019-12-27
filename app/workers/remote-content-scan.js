@@ -2,19 +2,17 @@
 // TODO: DRY this up at least...
 
 const { fetchAvailableMovies, fetchAvailableShows } = require('../services/manager-comm.service');
-const { dbConnection, dbClose, insertQuery, updateQuery, sanitizedQueryValues } = require('../db/db.helper');
+const { database, insertQuery, updateQuery, sanitizedQueryValues } = require('../db/db.helper');
 const { findIndex } = require('lodash');
 
 module.exports = async function () {
   let db;
   try {
-    db = await dbConnection();
+    db = await database();
     await syncRemoteMovies(db);
     await syncRemoteTvShows(db);
   } catch (error) {
     console.error(error);
-  } finally {
-    await dbClose(db);
   }
 }
 

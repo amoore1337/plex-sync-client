@@ -1,5 +1,5 @@
 const { getExistingMoviesMap, getExistingTvShowsMap } = require('./file.service');
-const { dbConnection, dbClose, insertQuery, updateQuery, findOrCreate } = require('../db/db.helper');
+const { database, insertQuery, updateQuery, findOrCreate } = require('../db/db.helper');
 const { find } = require('lodash');
 
 const typeToTableMap = {
@@ -18,7 +18,7 @@ const inProgressStatuses = [
 ]
 
 exports.startPendingContent = async function (token, type) {
-  const db = await dbConnection();
+  const db = await database();
   const contentRequesting = await db.get(`SELECT * FROM remote_${typeToTableMap[type]} WHERE token = "${token}"`);
   await db.run(insertQuery('pending_download_requests', {
     name: contentRequesting.name,
@@ -28,7 +28,6 @@ exports.startPendingContent = async function (token, type) {
     size: contentRequesting.size,
     created_at: Date.now(),
   }));
-  await dbClose(db);
 
   await updateContent(token, type, 'pending');
 }
@@ -46,7 +45,7 @@ exports.completeContent = async function(token, type) {
   console.log('completing!');
   let db;
   try {
-    db = await dbConnection();
+    db = await database();
     console.log(await db.get('PRAGMA journal_mode'));
     if (type === 'movie') {
       console.log('marking movie as completed');
@@ -60,31 +59,26 @@ exports.completeContent = async function(token, type) {
     console.log('finished');
   } catch (error) {
     console.error(error);
-  } finally {
-    await dbClose(db);
   }
 }
 
 exports.deletePendingQueue = async function() {
   let db;
   try {
-    db = await dbConnection();
+    db = await database();
     await db.run('DELETE FROM pending_download_requests');
   } catch (error) {
     console.error(error);
-  } finally {
-    await dbClose(db)
   }
 }
 
 async function updatePendingDownloadRecord(token, status) {
-  const db = await dbConnection();
+  const db = await database();
   await db.run(updateQuery('pending_download_requests', { last_event: status }) + ` WHERE token = "${token}"`);
-  await dbClose(db);
 }
 
 async function updateContent(token, type, status) {
-  const db = await dbConnection();
+  const db = await database();
   let contentStatus = 'unknown';
   if (inProgressStatuses.indexOf(status) > -1) {
     contentStatus = 'in-progress';
@@ -102,7 +96,6 @@ async function updateContent(token, type, status) {
   }
 
   await db.run(updateQuery(`remote_${typeToTableMap[type]}`, { status: contentStatus }) + ` WHERE token = "${token}"`);
-  await dbClose(db);
 }
 
 async function markMovieAsCompleted(db, token) {

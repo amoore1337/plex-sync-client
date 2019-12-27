@@ -118,27 +118,11 @@ const MIGRATIONS = [
   ]
 ];
 
-exports.dbConnection = async function() {
-  try {
-    const db = await Database.open('./app/db/app.db');
-    return db;
-  } catch (err) {
-    throw Error('Unable to initialize db... ' + err);
-  }
-}
+exports.database = database;
 
-exports.dbClose = async function(db) {
-  if (!db) { return; }
-  try {
-    await db.close()
-    db = null;
-  } catch (error) {
-    throw Error('Unable to close db... ' + err);
-  }
-}
-
-exports.runMigrations = async function(db) {
+exports.runMigrations = async function() {
   let queries = [];
+  const db = await database();
   const { user_version } = await db.get('PRAGMA user_version');
   return db.transaction(tx => {
     if (user_version < MIGRATIONS.length) {
@@ -148,13 +132,14 @@ exports.runMigrations = async function(db) {
         });
       }
       queries.push(tx.run(`PRAGMA user_version = ${MIGRATIONS.length}`));
-      queries.push(tx.run('PRAGMA journal_mode = WAL'));
+      // queries.push(tx.run('PRAGMA journal_mode = WAL'));
     }
     return Promise.all(queries);
   });
 }
 
-exports.findOrCreate = async function(db, tableName, values) {
+exports.findOrCreate = async function(tableName, values) {
+  const db = await database();
   let query = `SELECT *, ROWID FROM ${tableName} WHERE `;
   for (const [key, value] of Object.entries(values)) {
     query += `${key} = ${sanitizedQueryValues(value)} AND `
@@ -182,6 +167,18 @@ exports.updateQuery = function(tableName, values) {
 exports.insertQuery = insertQuery
 
 exports.sanitizedQueryValues = sanitizedQueryValues;
+
+let db;
+async function database() {
+  if (db) { return db; }
+  try {
+    db = await Database.open('./app/db/app.db');
+    await db.run('PRAGMA journal_mode = WAL');
+    return db;
+  } catch (err) {
+    throw Error('Unable to initialize db... ' + err);
+  }
+}
 
 function insertQuery(tableName, values) {
   return `

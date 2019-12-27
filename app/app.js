@@ -6,7 +6,7 @@ const expressWinston = require('express-winston');
 const cron = require('node-cron');
 const localContentScan = require('./workers/local-content-scan');
 const remoteContentScan = require('./workers/remote-content-scan');
-const { dbConnection, dbClose, runMigrations } = require('./db/db.helper');
+const { runMigrations } = require('./db/db.helper');
 const { getManagerConfig } = require('./services/manager-config.service');
 const { deletePendingQueue } = require('./services/content-state-manager.service');
 
@@ -38,11 +38,7 @@ module.exports = async (callback) => {
 
   // Run any pending migrations when the app starts up:
   try {
-    const db = await dbConnection();
-    await db.run('PRAGMA journal_mode = WAL');
-    console.log(await db.get('PRAGMA journal_mode'));
-    await runMigrations(db);
-    await dbClose(db);
+    await runMigrations();
   } catch (error) {
     logger.error('Migrations failed: ', error);
   }

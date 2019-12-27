@@ -1,4 +1,4 @@
-const { dbConnection, dbClose, insertQuery, updateQuery } = require('../db/db.helper');
+const { database, insertQuery, updateQuery } = require('../db/db.helper');
 
 let MANAGER_CLIENT;
 
@@ -7,7 +7,7 @@ exports.saveManagerConfig = async function (hostname, clientId, clientSecret) {
   try {
     const existingConfig = await getManagerConfig();
 
-    db = await dbConnection();
+    db = await database();
     if (existingConfig) {
       await db.run(
         updateQuery(
@@ -31,8 +31,6 @@ exports.saveManagerConfig = async function (hostname, clientId, clientSecret) {
 
   } catch (error) {
     console.error(error);
-  } finally {
-    await dbClose(db);
   }
 }
 
@@ -49,12 +47,10 @@ async function getManagerConfig() {
 
   let db;
   try {
-    db = await dbConnection();
+    db = await database();
     // There should only be a single manager config:
     return await db.get('SELECT * FROM manager_configs');
   } catch (error) {
     console.error(error)
-  } finally {
-    await dbClose(db);
   }
 }

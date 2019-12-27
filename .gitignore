@@ -4,6 +4,8 @@ node_modules
 /media
 /packaging
 /app/db/app.db
+/app/db/app.db-shm
+/app/db/app.db-wal
 
 # local env files
 .env.local
