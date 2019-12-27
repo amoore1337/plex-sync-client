@@ -4,10 +4,10 @@ const config = require('nconf');
 const logger = require('winston');
 const expressWinston = require('express-winston');
 const cron = require('node-cron');
-const localContentScan = require('./workers/local-content-scan');
-const remoteContentScan = require('./workers/remote-content-scan');
+const contentScan = require('./workers/content-scan');
+// const remoteContentScan = require('./workers/remote-content-scan');
 const { runMigrations } = require('./db/db.helper');
-const { getManagerConfig } = require('./services/manager-config.service');
+const { fetchAccessTokenForManager } = require('./services/auth.service');
 const { deletePendingQueue } = require('./services/content-state-manager.service');
 
 let app;
@@ -48,14 +48,14 @@ module.exports = async (callback) => {
     // Empty queue on start
     await deletePendingQueue();
 
-    const managerConfig = await getManagerConfig();
-    // Only load content on startup if config is present.
-    if (managerConfig) {
-      await localContentScan();
-      await remoteContentScan();
+    const validToken = await fetchAccessTokenForManager();
+    // Only load content on startup if we have credentials for manager
+    if (validToken) {
+      await contentScan();
+      // await remoteContentScan();
     }
   } catch (error) {
-    logger.error(error);
+    console.error(error);
   }
 
   logger.info('[SERVER] Initializing routes');

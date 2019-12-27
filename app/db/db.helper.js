@@ -6,7 +6,7 @@ const MIGRATIONS = [
   // SCHEMA 1
   [
     `
-      CREATE TABLE local_tv_shows (
+      CREATE TABLE local_shows (
         name TEXT,
         token TEXT,
         size INTEGER,
@@ -14,20 +14,20 @@ const MIGRATIONS = [
       )
     `,
     `
-      CREATE TABLE local_tv_show_seasons (
+      CREATE TABLE local_seasons (
         name TEXT,
         token text,
         size INTEGER,
-        local_tv_show_id INTEGER,
+        show_token TEXT,
         created_at INTEGER
       )
     `,
     `
-      CREATE TABLE local_tv_show_episodes (
+      CREATE TABLE local_episodes (
         name TEXT,
         token text,
         size INTEGER,
-        local_tv_show_season_id INTEGER,
+        season_token TEXT,
         created_at INTEGER
       )
     `,
@@ -40,7 +40,7 @@ const MIGRATIONS = [
       )
     `,
     `
-      CREATE TABLE remote_tv_shows (
+      CREATE TABLE remote_shows (
         name TEXT,
         token TEXT,
         size INTEGER,
@@ -49,22 +49,22 @@ const MIGRATIONS = [
       )
     `,
     `
-      CREATE TABLE remote_tv_show_seasons (
+      CREATE TABLE remote_seasons (
         name TEXT,
         token text,
         size INTEGER,
         status TEXT,
-        remote_tv_show_id INTEGER,
+        show_token TEXT,
         created_at INTEGER
       )
     `,
     `
-      CREATE TABLE remote_tv_show_episodes (
+      CREATE TABLE remote_episodes (
         name TEXT,
         token text,
         size INTEGER,
         status TEXT,
-        remote_tv_show_season_id INTEGER,
+        season_token TEXT,
         created_at INTEGER
       )
     `,
@@ -78,7 +78,7 @@ const MIGRATIONS = [
       )
     `,
     `
-      CREATE TABLE pending_download_requests (
+      CREATE TABLE pending_content_requests (
         name TEXT,
         type TEXT,
         token TEXT,
@@ -140,12 +140,9 @@ exports.runMigrations = async function() {
 
 exports.findOrCreate = async function(tableName, values) {
   const db = await database();
-  let query = `SELECT *, ROWID FROM ${tableName} WHERE `;
-  for (const [key, value] of Object.entries(values)) {
-    query += `${key} = ${sanitizedQueryValues(value)} AND `
-  }
+  let query = `SELECT *, ROWID FROM ${tableName} WHERE ${parameterizedWhere(values)}`;
 
-  const existingRecord = await db.get(query.slice(0, -4));
+  const existingRecord = await db.get(query);
   if (existingRecord) {
     return;
   };
@@ -153,18 +150,34 @@ exports.findOrCreate = async function(tableName, values) {
   await db.run(insertQuery(tableName, merge(values, { created_at: Date.now() })));
 }
 
+exports.createOrUpdate = async function(tableName, values, selector) {
+  const db = await database();
+  let query = `SELECT *, ROWID FROM ${tableName} WHERE ${parameterizedWhere(selector)}`;
 
-exports.updateQuery = function(tableName, values) {
-  let query = `UPDATE ${tableName} SET `;
-  for (const [key, value] of Object.entries(values)) {
-    query += `${key} = ${sanitizedQueryValues(value)}, `
+  const existingRecord = await db.get(query);
+  if (existingRecord) {
+    let requiresUpdate = false;
+    for (const [key, value] of Object.entries(values)) {
+      if (existingRecord[key] !== value) {
+        requiresUpdate = true;
+        break;
+      }
+    }
+
+    if (requiresUpdate) {
+      await db.run(updateQuery(tableName, values));
+    }
+  } else {
+    // Merge selector values back into insert values:
+    values = merge(values, selector);
+    await db.run(insertQuery(tableName, merge(values, { created_at: Date.now() })));
   }
-  // Remove trailing ', '
-  return query.slice(0, -2);
-
 }
 
-exports.insertQuery = insertQuery
+
+exports.updateQuery = updateQuery;
+
+exports.insertQuery = insertQuery;
 
 exports.sanitizedQueryValues = sanitizedQueryValues;
 
@@ -185,6 +198,24 @@ function insertQuery(tableName, values) {
     INSERT INTO ${tableName} ( ${Object.keys(values).toString()} )
     VALUES ( ${sanitizedQueryValues(...Object.values(values))} );
   `;
+}
+
+function updateQuery(tableName, values) {
+  let query = `UPDATE ${tableName} SET `;
+  for (const [key, value] of Object.entries(values)) {
+    query += `${key} = ${sanitizedQueryValues(value)}, `
+  }
+  // Remove trailing ', '
+  return query.slice(0, -2);
+}
+
+function parameterizedWhere(values) {
+  let query = '';
+  for (const [key, value] of Object.entries(values)) {
+    query += `${key} = ${sanitizedQueryValues(value)} AND `
+  }
+  // Chop off trailing 'AND `
+  return query.slice(0, -4);
 }
 
 function sanitizedQueryValues() {
