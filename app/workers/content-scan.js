@@ -5,6 +5,12 @@ const { find, map, difference } = require('lodash');
 
 module.exports = async function() {
   await syncMovies();
+
+  const fsShows = await getExistingTvShowsMap();
+  const remoteShows = await fetchAvailableShows();
+  await syncEpisodes(fsShows, remoteShows);
+  await syncSeasons(fsShows, remoteShows);
+  // await syncShows();
 }
 
 async function syncMovies() {
@@ -31,11 +37,9 @@ async function syncMovies() {
       // Verify local content record:
       await createOrUpdate(
         'local_movies',
-        { size: existingMovie.size },
+        { size: existingMovie.size, name: remoteMovie.name },
         { token: remoteMovie.token },
       );
-      // Remove any crufty pending_content records:
-      await cleanupPendingContentRequests(remoteMovie.token);
     } else if (pendingRequest) {
       await createOrUpdate(
         'remote_movies',
@@ -63,44 +67,266 @@ async function cleanupRemovedMovies(remoteMovies) {
   }
 }
 
-async function cleanupPendingContentRequests(token) {
+async function syncEpisodes(fsShows, remoteShows) {
   const db = await database();
-  await db.run(`DELETE FROM pending_content_requests WHERE token = "${token}"`);
+  await cleanupRemovedEpisodes(remoteShows);
+
+  const fsEpisodes = getAllEpisodes(fsShows);
+  const remoteEpisodes = getAllEpisodes(remoteShows);
+  for (let i = 0; i < remoteEpisodes.length; i++) {
+    const remoteEpisode = remoteEpisodes[i];
+    const existingEpisode = find(fsEpisodes, { token: remoteEpisode.token });
+    const pendingRequest = await db.get(`
+      SELECT * FROM pending_content_requests WHERE type = "movie" AND token = "${remoteEpisode.token}"`
+    );
+
+    if (existingEpisode) {
+      // Verify remote content record:
+      await createOrUpdate(
+        'remote_episodes',
+        {
+          status: 'completed',
+          size: remoteEpisode.size,
+          name: remoteEpisode.name,
+          season_token: remoteEpisode.season_token,
+        },
+        { token: remoteEpisode.token },
+      );
+      // Verify local content record:
+      await createOrUpdate(
+        'local_episodes',
+        {
+          size: existingEpisode.size,
+          name: remoteEpisode.name,
+          season_token: remoteEpisode.season_token,
+        },
+        { token: remoteEpisode.token },
+      );
+    } else if (pendingRequest) {
+      await createOrUpdate(
+        'remote_episodes',
+        {
+          status: 'in-progress',
+          size: remoteEpisode.size,
+          name: remoteEpisode.name,
+          season_token: remoteEpisode.season_token,
+        },
+        { token: remoteEpisode.token },
+      );
+    } else {
+      await createOrUpdate(
+        'remote_episodes',
+        {
+          status: 'not-downloaded',
+          size: remoteEpisode.size,
+          name: remoteEpisode.name,
+          season_token: remoteEpisode.season_token,
+        },
+        { token: remoteEpisode.token },
+      );
+    }
+  }
 }
 
-// TV SHOWS:
-// In order to get statuses set correctly, start with episodes and work up:
-// Loop through shows & seasons to get to all episodes
+async function cleanupRemovedEpisodes(remoteShows) {
+  const db = await database();
+  const existingTokens = map(await db.all('SELECT token from remote_episodes'), 'token');
+  const remoteTokens = map(getAllEpisodes(remoteShows), 'token');
+  const removedTokens = difference(existingTokens, remoteTokens);
 
-// Get list of all local episode tokens
-// For each remote episode:
+  if (removedTokens.length) {
+    await db.run(`DELETE FROM remote_episodes WHERE token IN (${sanitizedQueryValues(removedTokens)})`);
+  }
+}
 
-// IF episode exists locally:
-// Verify remote_episodes record exists in 'completed' status
-// Verify local_episodes record exists with proper token from remote
-// Remove any pending_ records if exist
+async function syncSeasons(fsShows, remoteShows) {
+  const db = await database();
+  await cleanupRemovedSeasons(remoteShows);
 
-// ELSE IF pending_ record exists:
-// Verify remote_episodes record exists in 'in-progress' status
+  const fsSeasons = getAllSeasons(fsShows);
+  const remoteSeasons = getAllSeasons(remoteShows);
 
-// ELSE
-// The movie doesn't exist locally so:
-// Verify remote_episodes record exists in 'not-downloaded'
+  for (let i = 0; i < remoteSeasons.length; i++) {
+    const remoteSeason = remoteSeasons[i];
+    const existingSeason = find(fsSeasons, { token: remoteSeason.token });
+    const episodeStatuses = map(
+      await db.all(`SELECT DISTINCT status FROM remote_episodes WHERE season_token = "${remoteSeason.token}"`),
+      'status',
+    );
 
-// For each season from remote:
+    if (episodeStatuses.length === 1 && episodeStatuses[0] === 'completed') { // completed
+      // Verify remote content record:
+      await createOrUpdate(
+        'remote_seasons',
+        {
+          status: 'completed',
+          size: remoteSeason.size,
+          name: remoteSeason.name,
+          show_token: remoteSeason.show_token,
+        },
+        { token: remoteSeason.token },
+      );
+      // Verify local content record:
+      await createOrUpdate(
+        'local_seasons',
+        {
+          size: existingSeason.size,
+          name: remoteSeason.name,
+          show_token: remoteSeason.show_token,
+        },
+        { token: remoteSeason.token },
+      );
+    } else if (episodeStatuses.indexOf('in-progress') > -1) { // in-progress
+      await createOrUpdate(
+        'remote_seasons',
+        {
+          status: 'in-progress',
+          size: remoteSeason.size,
+          name: remoteSeason.name,
+          show_token: remoteSeason.show_token,
+        },
+        { token: remoteSeason.token },
+      );
+    } else if (episodeStatuses.length === 1 && episodeStatuses[0] === 'not-downloaded') { //not-downloaded
+      await createOrUpdate(
+        'remote_seasons',
+        {
+          status: 'not-downloaded',
+          size: remoteSeason.size,
+          name: remoteSeason.name,
+          show_token: remoteSeason.show_token,
+        },
+        { token: remoteSeason.token },
+      );
+    } else { // incomplete
+      await createOrUpdate(
+        'remote_seasons',
+        {
+          status: 'incomplete',
+          size: remoteSeason.size,
+          name: remoteSeason.name,
+          show_token: remoteSeason.show_token,
+        },
+        { token: remoteSeason.token },
+      );
+    }
+  }
+}
 
-// Determine status by checking statuses of all related episodes for season in db
+async function cleanupRemovedSeasons(remoteShows) {
+  const db = await database();
+  const existingTokens = map(await db.all('SELECT token from remote_seasons'), 'token');
+  const remoteTokens = map(getAllSeasons(remoteShows), 'token');
 
-// IF season status is 'completed':
-// Verify remote_seasons record exists in 'completed' status
-// Verify local_episodes record exists with proper token from remote
-// Remove any pending_ records if exist
+  const removedTokens = difference(existingTokens, remoteTokens);
+  if (removedTokens.length) {
+    await db.run(`DELETE FROM remote_seasons WHERE token IN (${sanitizedQueryValues(removedTokens)})`);
+    await db.run(`DELETE FROM remote_episodes WHERE season_token IN (${sanitizedQueryValues(removedTokens)})`);
+  }
+}
 
-// ELSE IF pending_ record exists:
-// Verify remote_seasons record exists in 'in-progress' status
+async function syncShows(fsShows, remoteShows) {
+  const db = await database();
+  // await cleanupRemovedSeasons(remoteShows);
 
-// ELSE
-// The movie doesn't exist locally so:
-// Verify remote_seasons record exists in 'not-downloaded'
+  for (let i = 0; i < remoteShows.length; i++) {
+    const remoteShow = remoteShows[i];
+    const existingShow = find(fsShows, { token: remoteShow.token });
+    const seasonStatuses = map(
+      await db.all(`SELECT DISTINCT status FROM remote_seasons WHERE show_token = "${remoteShow.token}"`),
+      'status',
+    );
 
-// Same thing for shows
+    if (seasonStatuses.length === 1 && seasonStatuses[0] === 'completed') { // completed
+      // Verify remote content record:
+      await createOrUpdate(
+        'remote_shows',
+        {
+          status: 'completed',
+          size: remoteShow.size,
+          name: remoteShow.name,
+        },
+        { token: remoteShow.token },
+      );
+      // Verify local content record:
+      await createOrUpdate(
+        'local_seasons',
+        {
+          size: existingShow.size,
+          name: remoteShow.name,
+        },
+        { token: remoteShow.token },
+      );
+    } else if (seasonStatuses.indexOf('in-progress') > -1) { // in-progress
+      await createOrUpdate(
+        'remote_shows',
+        {
+          status: 'in-progress',
+          size: remoteShow.size,
+          name: remoteShow.name,
+        },
+        { token: remoteShow.token },
+      );
+    } else if (seasonStatuses.length === 1 && seasonStatuses[0] === 'not-downloaded') { //not-downloaded
+      await createOrUpdate(
+        'remote_shows',
+        {
+          status: 'not-downloaded',
+          size: remoteShow.size,
+          name: remoteShow.name,
+        },
+        { token: remoteShow.token },
+      );
+    } else { // incomplete
+      await createOrUpdate(
+        'remote_shows',
+        {
+          status: 'incomplete',
+          size: remoteShow.size,
+          name: remoteShow.name,
+        },
+        { token: remoteShow.token },
+      );
+    }
+  }
+}
+
+function getAllEpisodes(showsMap) {
+  if (!showsMap) { return []; }
+  const allSeasons = getAllSeasons(showsMap);
+  let episodes = [];
+  for (let i = 0; i < allSeasons.length; i++) {
+    const season = allSeasons[i];
+    if (season.children) {
+      season.children.forEach(episode => {
+        episodes.push({
+          name: episode.name,
+          size: episode.size,
+          token: episode.token,
+          season_token: season.token,
+        });
+      });
+    }
+  }
+  return episodes;
+}
+
+function getAllSeasons(showsMap) {
+  if (!showsMap) { return []; }
+  let seasons = [];
+  for (let i = 0; i < showsMap.length; i++) {
+    const show = showsMap[i];
+    if (show.children) {
+      show.children.forEach(season => {
+        seasons.push({
+          name: season.name,
+          size: season.size,
+          token: season.token,
+          show_token: show.token,
+          children: season.children,
+        });
+      });
+    }
+  }
+  return seasons;
+}
