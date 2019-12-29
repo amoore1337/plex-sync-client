@@ -57,7 +57,7 @@ exports.completeContent = async function(token, type) {
     }
 
     console.log('deleting pending record');
-    await db.run(`DELETE FROM pending_content_requests WHERE token = "${token}";`)
+    await db.run(`DELETE FROM pending_content_requests WHERE token = "${token}"`)
     console.log('finished');
   } catch (error) {
     console.error(error);
@@ -129,7 +129,7 @@ async function markSeasonAsCompleted(db, token) {
   const fsSeason = find(fsShow.children, { token });
 
   // Find or create the show record:
-  await findOrCreate(db, 'local_shows', {
+  await findOrCreate('local_shows', {
     name: fsShow.name,
     token: remoteShow.token,
     size: fsShow.size,
