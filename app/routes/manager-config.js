@@ -1,6 +1,7 @@
 const { wrapAsync } = require('../services/router.service');
 const { getManagerConfig, saveManagerConfig } = require('../services/manager-config.service');
 const { getPlexConfig, savePlexConfig } = require('../services/plex-comm.service');
+const contentScan = require('../workers/content-scan');
 
 module.exports = (router) => {
   router.get('/', wrapAsync(async (_, res) => {
@@ -30,6 +31,7 @@ module.exports = (router) => {
     }
 
     await saveManagerConfig(hostname, clientId, clientSecret);
+    await contentScan();
     res.json({ message: 'ok' });
   }));
 };

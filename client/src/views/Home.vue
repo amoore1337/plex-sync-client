@@ -30,9 +30,9 @@
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn text @click="showSettings = false">Cancel</v-btn>
-          <v-btn color="primary" @click="saveConfig">
+          <v-btn color="primary" @click="saveConfig" :disabled="savingSettings">
             <v-icon dark medium>mdi-content-save</v-icon>
-            Save
+            {{savingSettings ? 'Loading...' : 'Save'}}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -57,7 +57,8 @@ import axios from 'axios';
 export default class Home extends Vue {
   private contentType = '';
   private content: { [key: string]: any[] } = { tv: [], movies: [] };
-  private loadingContent = true;
+  private loadingContent = false;
+  private savingSettings = false;
   private showSettings = false;
   private managerIp = '';
   private managerKey = '';
@@ -104,15 +105,19 @@ export default class Home extends Vue {
   }
 
   private saveConfig() {
+    this.savingSettings = true;
     axios.post('/api/manager-config', {
       hostname: this.managerIp,
       client_id: this.managerKey,
       client_secret: this.managerSecret,
       plex_hostname: this.plexIp,
       plex_token: this.plexToken,
-    });
+    }).then(() => {
+      this.showSettings = false;
+      this.savingSettings = false;
+      this.loadContent(true);
+    }).catch(() => this.savingSettings = false);
 
-    this.showSettings = false;
   }
 
 }

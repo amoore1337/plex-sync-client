@@ -52,7 +52,6 @@ module.exports = async (callback) => {
     // Only load content on startup if we have credentials for manager
     if (validToken) {
       await contentScan();
-      // await remoteContentScan();
     }
   } catch (error) {
     console.error(error);
