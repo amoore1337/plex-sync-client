@@ -165,7 +165,7 @@ exports.createOrUpdate = async function(tableName, values, selector) {
     }
 
     if (requiresUpdate) {
-      await db.run(updateQuery(tableName, values));
+      await db.run(`${updateQuery(tableName, values)} WHERE ${parameterizedWhere(selector)}`);
     }
   } else {
     // Merge selector values back into insert values:

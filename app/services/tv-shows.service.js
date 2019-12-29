@@ -20,7 +20,7 @@ async function getSeasonsForShow(showToken) {
   let db;
   try {
     db = await database();
-    return db.all(`SELECT * FROM remote_seasons WHERE show_token = ${showToken}`);
+    return db.all(`SELECT * FROM remote_seasons WHERE show_token = "${showToken}"`);
   } catch (error) {
     console.error(error);
   }
@@ -30,7 +30,7 @@ async function getEpisodesForSeason(seasonToken) {
   let db;
   try {
     db = await database();
-    return db.all(`SELECT * FROM remote_episodes WHERE season_token = ${seasonToken}`);
+    return db.all(`SELECT * FROM remote_episodes WHERE season_token = "${seasonToken}"`);
   } catch (error) {
     console.error(error);
   }

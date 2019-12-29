@@ -10,7 +10,7 @@ module.exports = async function() {
   const remoteShows = await fetchAvailableShows();
   await syncEpisodes(fsShows, remoteShows);
   await syncSeasons(fsShows, remoteShows);
-  // await syncShows();
+  await syncShows(fsShows, remoteShows);
 }
 
 async function syncMovies() {
@@ -63,7 +63,7 @@ async function cleanupRemovedMovies(remoteMovies) {
 
   const removedTokens = difference(existingTokens, remoteTokens);
   if (removedTokens.length) {
-    await db.run(`DELETE FROM remote_movies WHERE token IN (${sanitizedQueryValues(removedTokens)})`)
+    await db.run(`DELETE FROM remote_movies WHERE token IN (${sanitizedQueryValues(...removedTokens)})`)
   }
 }
 
@@ -130,12 +130,12 @@ async function syncEpisodes(fsShows, remoteShows) {
 
 async function cleanupRemovedEpisodes(remoteShows) {
   const db = await database();
-  const existingTokens = map(await db.all('SELECT token from remote_episodes'), 'token');
+  const existingTokens = map(await db.all('SELECT token FROM remote_episodes'), 'token');
   const remoteTokens = map(getAllEpisodes(remoteShows), 'token');
   const removedTokens = difference(existingTokens, remoteTokens);
 
   if (removedTokens.length) {
-    await db.run(`DELETE FROM remote_episodes WHERE token IN (${sanitizedQueryValues(removedTokens)})`);
+    await db.run(`DELETE FROM remote_episodes WHERE token IN (${sanitizedQueryValues(...removedTokens)})`);
   }
 }
 
@@ -215,19 +215,19 @@ async function syncSeasons(fsShows, remoteShows) {
 
 async function cleanupRemovedSeasons(remoteShows) {
   const db = await database();
-  const existingTokens = map(await db.all('SELECT token from remote_seasons'), 'token');
+  const existingTokens = map(await db.all('SELECT token FROM remote_seasons'), 'token');
   const remoteTokens = map(getAllSeasons(remoteShows), 'token');
 
   const removedTokens = difference(existingTokens, remoteTokens);
   if (removedTokens.length) {
-    await db.run(`DELETE FROM remote_seasons WHERE token IN (${sanitizedQueryValues(removedTokens)})`);
-    await db.run(`DELETE FROM remote_episodes WHERE season_token IN (${sanitizedQueryValues(removedTokens)})`);
+    await db.run(`DELETE FROM remote_seasons WHERE token IN (${sanitizedQueryValues(...removedTokens)})`);
+    await db.run(`DELETE FROM remote_episodes WHERE season_token IN (${sanitizedQueryValues(...removedTokens)})`);
   }
 }
 
 async function syncShows(fsShows, remoteShows) {
   const db = await database();
-  // await cleanupRemovedSeasons(remoteShows);
+  await cleanupRemovedShows(remoteShows);
 
   for (let i = 0; i < remoteShows.length; i++) {
     const remoteShow = remoteShows[i];
@@ -288,6 +288,23 @@ async function syncShows(fsShows, remoteShows) {
         { token: remoteShow.token },
       );
     }
+  }
+}
+
+async function cleanupRemovedShows(remoteShows) {
+  const db = await database();
+  const existingTokens = map(await db.all('SELECT token FROM remote_shows'), 'token');
+  const remoteTokens = map(remoteShows, 'token');
+
+  const removedTokens = difference(existingTokens, remoteTokens);
+  if (removedTokens.length) {
+    const existingSeasonTokens = map(
+      await db.all(`SELECT token FROM remote_seasons WHERE show_token IN (${sanitizedQueryValues(...removedTokens)})`),
+      'token'
+    );
+    await db.run(`DELETE FROM remote_shows WHERE token IN (${sanitizedQueryValues(...removedTokens)})`);
+    await db.run(`DELETE FROM remote_seasons WHERE token IN (${sanitizedQueryValues(...existingSeasonTokens)})`);
+    await db.run(`DELETE FROM remote_episodes WHERE season_token IN (${sanitizedQueryValues(...existingSeasonTokens)})`);
   }
 }
 
