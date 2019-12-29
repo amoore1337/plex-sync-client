@@ -10,8 +10,8 @@
       <div class="grid-controls">
         <content-toggle></content-toggle>
       </div>
-      <tv-grid v-bind:tvShows="content.tv" v-bind:loading="loadingContent" @refresh-requested="loadContent(true)" v-if="contentType === 'tv'"></tv-grid>
-      <movies-grid v-bind:movies="content.movies" v-bind:loading="loadingContent" @refresh-requested="loadContent(true)" v-else></movies-grid>
+      <tv-grid v-bind:tvShows="content.tv" v-bind:loading="loadingContent" v-if="contentType === 'tv'"></tv-grid>
+      <movies-grid v-bind:movies="content.movies" v-bind:loading="loadingContent" v-else></movies-grid>
     </div>
     <v-dialog v-model="showSettings" max-width="700">
       <v-card>
@@ -45,6 +45,8 @@ import { Component, Vue, Watch } from 'vue-property-decorator';
 import ContentToggle from '@/components/ContentToggle.vue';
 import TvGrid from '@/components/tv/TvGrid.vue';
 import MoviesGrid from '@/components/movies/MoviesGrid.vue';
+import io from 'socket.io-client';
+import { find } from 'lodash';
 import axios from 'axios';
 
 @Component({
@@ -65,9 +67,19 @@ export default class Home extends Vue {
   private managerSecret = '';
   private plexIp = '';
   private plexToken = '';
+  private socket: any;
 
   private mounted() {
     this.updateGridDisplay();
+    this.contentType = this.$route.query.type as string;
+    this.socket = io('', {transports: ['websocket']});
+    this.socket.on('in-progress-downloads', (data: any) => {
+      data.pending_content.forEach((pending: any) => this.updateContent(pending));
+
+      if (data.completed_content) {
+        this.updateContent(data.completed_content);
+      }
+    });
   }
 
   @Watch('$route.query.type')
@@ -78,12 +90,51 @@ export default class Home extends Vue {
 
   private loadContent(force = false) {
     const routeMap: {[key: string]: string} = { tv: 'shows', movies: 'movies' };
+    if (!this.contentType) { return; }
     if (force || !this.content[this.contentType].length) {
       this.loadingContent = true;
       return axios.get(`/api/${routeMap[this.contentType]}`).then((res: any) => {
         this.content[this.contentType] = res.data;
         this.loadingContent = false;
       }).catch(() => this.loadingContent = false);
+    }
+  }
+
+  private updateContent(content: any) {
+    const type = (['show', 'season', 'episode'].indexOf(content.type) > -1) ? 'shows' : 'movies';
+    // TODO: Support more granular statuses:
+    const eventToStatusMap: { [key: string]: any } = {
+      pending: 'in-progress',
+      processing: 'in-progress',
+      downloading: 'in-progress',
+      unpacking: 'in-progress',
+      cleaning: 'in-progress',
+    };
+
+    const updatedStatus = content.status || eventToStatusMap[(content.last_event) as string];
+    if (content.type === 'show') {
+      const show = find(this.content[type], { token: content.token });
+      show.status = updatedStatus;
+      show.seasons.forEach((season: any) => {
+        season.status = updatedStatus;
+        season.episodes.forEach((episode: any) => episode.status = updatedStatus);
+      });
+    } else if (content.type === 'season') {
+      const show = find(this.content[type], { token: content.show_token });
+      show.status = updatedStatus;
+      const season = find(show.seasons, { token: content.token });
+      season.status = updatedStatus;
+      season.episodes.forEach((episode: any) => episode.status = updatedStatus);
+    } else if (content.type === 'episode') {
+      const show = find(this.content[type], { token: content.show_token });
+      show.status = updatedStatus;
+      const season = find(show.seasons, { token: content.season_token });
+      season.status = updatedStatus;
+      const episode = find(season.episodes, { token: content.token });
+      episode.status = updatedStatus;
+    } else if (content.type === 'movie') {
+      const movie = find(this.content[type], { token: content.token });
+      movie.status = updatedStatus;
     }
   }
 

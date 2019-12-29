@@ -6,7 +6,17 @@ function resolvePath(localPath) {
 
 module.exports = {
   devServer: {
-    proxy: 'http://localhost:1337'
+    proxy: {
+      '/api': {
+        target: 'http://localhost:1337'
+      },
+      '/sockjs-node': {
+        target: 'http://localhost:1337',
+        ws: true,
+        changeOrigin: true,
+        logLevel: 'debug'
+      }
+    }
   },
   configureWebpack: {
     resolve: {

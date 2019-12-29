@@ -3,14 +3,15 @@ const bodyParser = require('body-parser');
 const config = require('nconf');
 const logger = require('winston');
 const expressWinston = require('express-winston');
+const { initIo, io } = require('./socket');
 const cron = require('node-cron');
 const contentScan = require('./workers/content-scan');
-// const remoteContentScan = require('./workers/remote-content-scan');
 const { runMigrations } = require('./db/db.helper');
 const { fetchAccessTokenForManager } = require('./services/auth.service');
-const { deletePendingQueue } = require('./services/content-state-manager.service');
+const { deletePendingQueue, updateConnectedClients } = require('./services/content-state-manager.service');
 
 let app;
+let socket;
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
@@ -73,8 +74,14 @@ module.exports = async (callback) => {
 
   const NODE_PORT = config.get('NODE_PORT') || 1337;
 
-  app.listen(NODE_PORT, () => {
+  const server = app.listen(NODE_PORT, () => {
     logger.info('[SERVER] Listening on port ' + NODE_PORT);
     if (callback) { return callback(); }
+  });
+
+  socket = initIo(server);
+
+  socket.on('connection', async () => {
+    await updateConnectedClients();
   });
 };

@@ -1,6 +1,7 @@
 const { getExistingMoviesMap, getExistingTvShowsMap } = require('./file.service');
 const { database, insertQuery, updateQuery, findOrCreate } = require('../db/db.helper');
-const { find } = require('lodash');
+const { io } = require('../socket');
+const { find, isEmpty } = require('lodash');
 
 // TODO: Now that this only the plural version of the type,
 // find lib to pluralize instead of this map.
@@ -19,7 +20,7 @@ const inProgressStatuses = [
   'cleaning'
 ]
 
-exports.startPendingContent = async function (token, type) {
+exports.startPendingContent = async function(token, type) {
   const db = await database();
   const contentRequesting = await db.get(`SELECT * FROM remote_${typeToTableMap[type]} WHERE token = "${token}"`);
   await db.run(insertQuery('pending_content_requests', {
@@ -31,6 +32,7 @@ exports.startPendingContent = async function (token, type) {
     created_at: Date.now(),
   }));
 
+  updateConnectedClients();
   await updateContent(token, type, 'pending');
 }
 
@@ -48,16 +50,19 @@ exports.completeContent = async function(token, type) {
   let db;
   try {
     db = await database();
-    console.log(await db.get('PRAGMA journal_mode'));
     if (type === 'movie') {
       console.log('marking movie as completed');
       await markMovieAsCompleted(db, token);
     } else if (type === 'season') {
+      console.log('marking season as completed');
       await markSeasonAsCompleted(db, token);
     }
 
+
     console.log('deleting pending record');
     await db.run(`DELETE FROM pending_content_requests WHERE token = "${token}"`)
+
+    updateConnectedClients({ token, type });
     console.log('finished');
   } catch (error) {
     console.error(error);
@@ -74,9 +79,55 @@ exports.deletePendingQueue = async function() {
   }
 }
 
+exports.updateConnectedClients = updateConnectedClients;
+
+async function getPendingContent() {
+  const db = await database();
+  const records = await db.all('SELECT * FROM pending_content_requests');
+  const pendingContent = [];
+  records.forEach(async record => {
+    if (record.type === 'season') {
+      const season = await db.get(`SELECT show_token FROM remote_seasons WHERE token = "${record.token}"`)
+      record.show_token = season.show_token;
+    } else if (record.type === 'episode') {
+      const episode = await db.get(`
+        SELECT season_token, show_token
+        FROM remote_episodes
+        LEFT JOIN remote_seasons ON remote_seasons.token = remote_episodes.season_token
+        WHERE token = "${record.token}"
+      `);
+      record.season_token = episode.season_token;
+      record.show_token = episode.show_token;
+    }
+    pendingContent.push(record);
+  });
+
+  return pendingContent;
+}
+
+// completedContent is an object that must contain a token and type
+async function updateConnectedClients(completedContent = {}) {
+  const socket = io();
+  const db = await database();
+  const pendingContent = await getPendingContent();
+  let event = { pending_content: pendingContent };
+  if (!isEmpty(completedContent)) {
+    const tableMap = { movie: 'remote_movies', show: 'remote_shows', season: 'remote_seasons', episode: 'remote_episodes' };
+    const content = await db.get(`SELECT * FROM ${tableMap[completedContent.type]} WHERE token = "${completedContent.token}"`);
+    content.type = completedContent.type;
+    if (completedContent.type === 'episode') {
+      const season = await db.get(`SELECT show_token FROM remote_seasons WHERE token = "${content.season_token}"`);
+      content.show_token = season.show_token;
+    }
+    event.completed_content = content;
+  }
+  socket.emit('in-progress-downloads', event);
+}
+
 async function updatePendingDownloadRecord(token, status) {
   const db = await database();
   await db.run(updateQuery('pending_content_requests', { last_event: status }) + ` WHERE token = "${token}"`);
+  updateConnectedClients();
 }
 
 async function updateContent(token, type, status) {
