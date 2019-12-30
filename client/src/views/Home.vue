@@ -140,7 +140,7 @@ export default class Home extends Vue {
           this.seasonProgress.push({
             token: content.token,
             show_token: season.show_token,
-            progress: content.progress
+            progress: content.progress,
           });
         }
       }

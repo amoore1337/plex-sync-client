@@ -65,12 +65,9 @@ exports.downloadContent = async function (token, type) {
   worker.on('exit', async statusCode => {
     if (statusCode === 0) {
       try {
-        console.log('on exit!');
         await completeContent(token, type);
         // Update Plex library with new content:
-        console.log('seting up update to plex: ', type)
         const plexType = ['show', 'season', 'episode'].indexOf(type) > -1 ? 'show' : 'movie';
-        console.log('updating plex');
         await refreshPlexLibraryForType(plexType);
       } catch (error) {
         console.error(error)
@@ -85,8 +82,6 @@ async function handleDownloadStatusUpdate(event, lastStatus) {
   if (lastStatus != event.status) {
     await updateContentStatus(event.token, event.type, event.status)
   } else if(event.status === 'downloading') {
-    const progress = {};
-    progress[event.token] = event.value;
-    updateConnectedClients({}, progress);
+    updateConnectedClients({}, { token: event.token, value: event.value });
   }
 }

@@ -46,24 +46,19 @@ exports.updateContentStatus = async function(token, type, status) {
 }
 
 exports.completeContent = async function(token, type) {
-  console.log('completing!');
   let db;
   try {
     db = await database();
     if (type === 'movie') {
-      console.log('marking movie as completed');
       await markMovieAsCompleted(db, token);
     } else if (type === 'season') {
-      console.log('marking season as completed');
       await markSeasonAsCompleted(db, token);
     }
 
 
-    console.log('deleting pending record');
     await db.run(`DELETE FROM pending_content_requests WHERE token = "${token}"`)
 
     updateConnectedClients({ token, type });
-    console.log('finished');
   } catch (error) {
     console.error(error);
   }
@@ -85,9 +80,10 @@ async function getPendingContent() {
   const db = await database();
   const records = await db.all('SELECT * FROM pending_content_requests');
   const pendingContent = [];
-  records.forEach(async record => {
+  for (let i = 0; i < records.length; i++) {
+    const record = records[i];
     if (record.type === 'season') {
-      const season = await db.get(`SELECT show_token FROM remote_seasons WHERE token = "${record.token}"`)
+      const season = await db.get(`SELECT * FROM remote_seasons WHERE token = "${record.token}"`)
       record.show_token = season.show_token;
     } else if (record.type === 'episode') {
       const episode = await db.get(`
@@ -100,13 +96,12 @@ async function getPendingContent() {
       record.show_token = episode.show_token;
     }
     pendingContent.push(record);
-  });
-
+  }
   return pendingContent;
 }
 
 // completedContent is an object that must contain a token and type
-// progress has a token as its key and progress as its value
+// progress is an object that contains a token and a value
 async function updateConnectedClients(completedContent = {}, progress = {}) {
   const socket = io();
   const db = await database();
@@ -114,8 +109,8 @@ async function updateConnectedClients(completedContent = {}, progress = {}) {
 
   // If progress is reported for an item, mark it on the record
   if (!isEmpty(progress)) {
-    const downloading = find(pendingContent, { token: Object.keys(progress)[0] });
-    downloading.progress = Object.values(progress)[0];
+    const downloading = find(pendingContent, { token: progress.token });
+    downloading.progress = progress.value;
   }
 
   let event = { pending_content: pendingContent };
@@ -165,7 +160,6 @@ async function markMovieAsCompleted(db, token) {
   const dirMap = await getExistingMoviesMap();
   const fsMovie = find(dirMap, { token });
 
-  console.log('adding local movie')
   await db.run(insertQuery('local_movies', {
     name: fsMovie.name,
     token: token,
@@ -173,7 +167,6 @@ async function markMovieAsCompleted(db, token) {
     created_at: Date.now(),
   }));
 
-  console.log('updating remote movie');
   await db.run(updateQuery('remote_movies', { status: 'completed' }) + ` WHERE token = "${token}"`);
 }
 

@@ -3,6 +3,7 @@ node_modules
 */dist
 /media
 /packaging
+/unpack
 /app/db/app.db
 /app/db/app.db-shm
 /app/db/app.db-wal
