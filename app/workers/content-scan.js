@@ -1,22 +1,43 @@
 const { getExistingMoviesMap, getExistingTvShowsMap } = require('../services/file.service');
 const { fetchAvailableMovies, fetchAvailableShows } = require('../services/manager-comm.service');
-const { database, insertQuery, updateQuery, sanitizedQueryValues, createOrUpdate } = require('../db/db.helper');
+const { database, sanitizedQueryValues, createOrUpdate } = require('../db/db.helper');
 const { find, map, difference } = require('lodash');
+const moment = require('moment');
 
 module.exports = async function() {
-  await syncMovies();
+  console.log('[SYNC] Syncing content with remote @ ', moment().format('MMMM Do YYYY, h:mm:ss a'));
 
-  const fsShows = await getExistingTvShowsMap();
-  const remoteShows = await fetchAvailableShows();
-  await syncEpisodes(fsShows, remoteShows);
-  await syncSeasons(fsShows, remoteShows);
-  await syncShows(fsShows, remoteShows);
+  try {
+    const remoteMovies = await fetchAvailableMovies();
+    // TODO: This is dumb but a placeholder till error handling is fixed
+    if (remoteMovies.error) {
+      throw new Error(remoteMovies.error);
+    }
+    const fsMovies = await getExistingMoviesMap();
+    await syncMovies(fsMovies, remoteMovies);
+  } catch (error) {
+    console.error('Unable to sync movies:');
+    console.error(error);
+  }
+
+  try {
+    const remoteShows = await fetchAvailableShows();
+    // TODO: This is dumb but a placeholder till error handling is fixed
+    if (remoteShows.error) {
+      throw new Error(remoteShows.error);
+    }
+    const fsShows = await getExistingTvShowsMap();
+    await syncEpisodes(fsShows, remoteShows);
+    await syncSeasons(fsShows, remoteShows);
+    await syncShows(fsShows, remoteShows);
+  } catch (error) {
+    console.error('Unable to sync tv shows:');
+    console.error(error);
+  }
 }
 
-async function syncMovies() {
+async function syncMovies(fsMovies, remoteMovies) {
   const db = await database();
-  const remoteMovies = await fetchAvailableMovies();
-  const fsMovies = await getExistingMoviesMap();
 
   await cleanupRemovedMovies(remoteMovies);
 

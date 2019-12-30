@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const config = require('nconf');
 const logger = require('winston');
 const expressWinston = require('express-winston');
-const { initIo, io } = require('./socket');
+const { initIo } = require('./socket');
 const cron = require('node-cron');
 const contentScan = require('./workers/content-scan');
 const { runMigrations } = require('./db/db.helper');
@@ -44,19 +44,19 @@ module.exports = async (callback) => {
     logger.error('Migrations failed: ', error);
   }
 
-  // cron.schedule('*/1 * * * *', remoteContentScan);
   try {
     // Empty queue on start
     await deletePendingQueue();
 
-    const validToken = await fetchAccessTokenForManager();
-    // Only load content on startup if we have credentials for manager
-    if (validToken) {
-      await contentScan();
-    }
   } catch (error) {
     console.error(error);
   }
+
+  // Run every 3 hours:
+  cron.schedule('0 0 */3 * * *', contentScan);
+
+  // Run on startup to ensure we're up to date:
+  await contentScan();
 
   logger.info('[SERVER] Initializing routes');
   require('./routes/index')(app);
