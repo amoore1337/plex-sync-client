@@ -10,8 +10,8 @@
       <div class="grid-controls">
         <content-toggle></content-toggle>
       </div>
-      <tv-grid v-bind:tvShows="content.tv" v-bind:loading="loadingContent" v-if="contentType === 'tv'"></tv-grid>
-      <movies-grid v-bind:movies="content.movies" v-bind:loading="loadingContent" v-else></movies-grid>
+      <tv-grid v-bind:tvShows="content.tv" v-bind:loading="loadingContent" :progress="seasonProgress" v-if="contentType === 'tv'"></tv-grid>
+      <movies-grid v-bind:movies="content.movies" v-bind:loading="loadingContent" :progress="movieProgress" v-else></movies-grid>
     </div>
     <v-dialog v-model="showSettings" max-width="700">
       <v-card>
@@ -46,7 +46,7 @@ import ContentToggle from '@/components/ContentToggle.vue';
 import TvGrid from '@/components/tv/TvGrid.vue';
 import MoviesGrid from '@/components/movies/MoviesGrid.vue';
 import io from 'socket.io-client';
-import { find } from 'lodash';
+import { find, findIndex } from 'lodash';
 import axios from 'axios';
 
 @Component({
@@ -59,6 +59,9 @@ import axios from 'axios';
 export default class Home extends Vue {
   private contentType = '';
   private content: { [key: string]: any[] } = { tv: [], movies: [] };
+  private movieProgress: { token: string, progress: number }[] = [];
+  private seasonProgress: { token: string, show_token: string, progress: number }[] = [];
+  private showProgress: { type: string, token: string, progress: number }[] = [];
   private loadingContent = false;
   private savingSettings = false;
   private showSettings = false;
@@ -101,7 +104,11 @@ export default class Home extends Vue {
   }
 
   private updateContent(content: any) {
-    const type = (['show', 'season', 'episode'].indexOf(content.type) > -1) ? 'shows' : 'movies';
+    const type = (['show', 'season', 'episode'].indexOf(content.type) > -1) ? 'tv' : 'movies';
+
+    // If we haven't loaded that content type yet, bail
+    if (!this.content[type]) { return; }
+
     // TODO: Support more granular statuses:
     const eventToStatusMap: { [key: string]: any } = {
       pending: 'in-progress',
@@ -125,6 +132,18 @@ export default class Home extends Vue {
       const season = find(show.seasons, { token: content.token });
       season.status = updatedStatus;
       season.episodes.forEach((episode: any) => episode.status = updatedStatus);
+      if (content.progress) {
+        const index = findIndex(this.seasonProgress, { token: content.token });
+        if (index > -1) {
+          this.seasonProgress[index].progress = content.progress;
+        } else {
+          this.seasonProgress.push({
+            token: content.token,
+            show_token: season.show_token,
+            progress: content.progress
+          });
+        }
+      }
     } else if (content.type === 'episode') {
       const show = find(this.content[type], { token: content.show_token });
       show.status = updatedStatus;
@@ -135,6 +154,15 @@ export default class Home extends Vue {
     } else if (content.type === 'movie') {
       const movie = find(this.content[type], { token: content.token });
       movie.status = updatedStatus;
+
+      if (content.progress) {
+        const index = findIndex(this.movieProgress, { token: content.token });
+        if (index > -1) {
+          this.movieProgress[index].progress = content.progress;
+        } else {
+          this.movieProgress.push({ token: content.token, progress: content.progress });
+        }
+      }
     }
   }
 
@@ -168,9 +196,7 @@ export default class Home extends Vue {
       this.savingSettings = false;
       this.loadContent(true);
     }).catch(() => this.savingSettings = false);
-
   }
-
 }
 </script>
 <style scoped lang="scss">

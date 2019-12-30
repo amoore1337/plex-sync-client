@@ -106,11 +106,20 @@ async function getPendingContent() {
 }
 
 // completedContent is an object that must contain a token and type
-async function updateConnectedClients(completedContent = {}) {
+// progress has a token as its key and progress as its value
+async function updateConnectedClients(completedContent = {}, progress = {}) {
   const socket = io();
   const db = await database();
   const pendingContent = await getPendingContent();
+
+  // If progress is reported for an item, mark it on the record
+  if (!isEmpty(progress)) {
+    const downloading = find(pendingContent, { token: Object.keys(progress)[0] });
+    downloading.progress = Object.values(progress)[0];
+  }
+
   let event = { pending_content: pendingContent };
+
   if (!isEmpty(completedContent)) {
     const tableMap = { movie: 'remote_movies', show: 'remote_shows', season: 'remote_seasons', episode: 'remote_episodes' };
     const content = await db.get(`SELECT * FROM ${tableMap[completedContent.type]} WHERE token = "${completedContent.token}"`);
@@ -121,6 +130,7 @@ async function updateConnectedClients(completedContent = {}) {
     }
     event.completed_content = content;
   }
+
   socket.emit('in-progress-downloads', event);
 }
 

@@ -7,10 +7,14 @@
         <td :style="{flex: 20}">{{show.seasons.length}}</td>
         <td :style="{flex: 20}">{{show.size | numFormat('0.0b') }}</td>
         <td :style="{flex: 20}">
-          <download-indicator :status="show.status" :downloadable="false"></download-indicator>
+          <download-indicator :status="show.status" :progress="progressForShow(show.token)" :downloadable="false"></download-indicator>
         </td>
         <template v-slot:expanded>
-          <tv-season-chip v-for="season in sortContent(show.seasons)" :key="season.name" :season="season" @season-download-requested="onSeasonDownloadRequested(show, season)"></tv-season-chip>
+          <tv-season-chip
+            v-for="season in sortContent(show.seasons)" :key="season.name"
+            :season="season" :progress="progressForSeason(season.token)"
+            @season-download-requested="onSeasonDownloadRequested(show, season)">
+          </tv-season-chip>
         </template>
       </grid-row>
     </grid>
@@ -24,7 +28,10 @@
           Please ensure you have approximately <strong>{{selected.season.size | numFormat('0.0b')}}</strong> of free space available on your server before continuing.
           <span class="font-weight-bold">Episodes:</span>
           <div class="episodes-container">
-            <tv-episode-chip v-for="episode in sortContent(selected.season.episodes)" :key="episode.name" :episode="episode"></tv-episode-chip>
+            <tv-episode-chip
+              v-for="episode in sortContent(selected.season.episodes)" :key="episode.name"
+              :episode="episode" :progress="progressForEpisode(episode)">
+            </tv-episode-chip>
           </div>
         </v-card-text>
         <v-card-actions>
@@ -49,8 +56,8 @@ import DownloadIndicator from '@/components/DownloadIndicator.vue';
 import RemainingSpaceIndicator from '@/components/RemainingSpaceIndicator.vue';
 import TvSeasonChip from '@/components/tv/TvSeasonChip.vue';
 import TvEpisodeChip from '@/components/tv/TvEpisodeChip.vue';
-import { Component, Prop, Vue } from 'vue-property-decorator';
-import { orderBy } from 'lodash';
+import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
+import { orderBy, find } from 'lodash';
 import { downloadContentService } from '@/services/download-content.service';
 
 interface ISortCol {
@@ -71,6 +78,7 @@ interface ISortCol {
 export default class TvGrid extends Vue {
   @Prop() private tvShows!: any[];
   @Prop() private loading!: boolean;
+  @Prop() private progress!: any[];
 
   private showDownloadDialog = false;
   private selected = {
@@ -91,6 +99,27 @@ export default class TvGrid extends Vue {
 
   private sortContent(content: any) {
     return orderBy(content, 'name', 'asc');
+  }
+
+  private progressForShow(token: string) {
+    const progress = find(this.progress, { show_token: token })
+    if (progress) {
+      return progress.progress;
+    }
+  }
+
+  private progressForSeason(token: string) {
+    const progress = find(this.progress, { token })
+    if (progress) {
+      return progress.progress;
+    }
+  }
+
+  private progressForEpisode(episode: any) {
+    const progress = find(this.progress, { token: episode.season_token })
+    if (progress) {
+      return progress.progress;
+    }
   }
 
   private onSeasonDownloadRequested(show: any, season: any) {

@@ -3,6 +3,7 @@
     <download-indicator
       @download-requested="$emit('season-download-requested', season.token)"
       :status="season.status"
+      :progress="progress"
       :downloadable="true"
     ></download-indicator>
     <span>{{season.name}}</span>
@@ -24,6 +25,7 @@ import { Component, Prop, Vue } from 'vue-property-decorator';
 })
 export default class TvSeasonChip extends Vue {
   @Prop() private season!: any;
+  @Prop() private progress!: any;
 }
 </script>
 

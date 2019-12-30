@@ -3,6 +3,7 @@
     <download-indicator
       :status="episode.status"
       :downloadable="false"
+      :progress="progress"
     ></download-indicator>
     <span>{{episode.name}}</span>
   </div>
@@ -20,6 +21,7 @@ import { Component, Prop, Vue } from 'vue-property-decorator';
 export default class TvEpisodeChip extends Vue {
   @Prop() private episode!: any[];
   @Prop() private size!: number;
+  @Prop() private progress!: number;
 }
 </script>
 
@@ -32,8 +34,7 @@ export default class TvEpisodeChip extends Vue {
     .download-indicator {
       display: flex;
       justify-content: center;
-      // margin-right: 15px;
-      width: 50px;
+      width: 65px;
     }
 
     .dash {

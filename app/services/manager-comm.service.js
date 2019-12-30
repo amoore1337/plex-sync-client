@@ -3,7 +3,12 @@ const { Worker } = require('worker_threads');
 const { getPathFromHash, getMoviePath, getTvPath } = require('./file.service');
 const { fetchAccessTokenForManager } = require('./auth.service');
 const { getManagerConfig, getManagerDomain } = require('./manager-config.service');
-const { startPendingContent, updateContentStatus, completeContent } = require('./content-state-manager.service');
+const {
+  startPendingContent,
+  updateContentStatus,
+  completeContent,
+  updateConnectedClients,
+} = require('./content-state-manager.service');
 const { refreshPlexLibraryForType } = require('./plex-comm.service');
 
 let oauthToken = '';
@@ -79,5 +84,9 @@ exports.downloadContent = async function (token, type) {
 async function handleDownloadStatusUpdate(event, lastStatus) {
   if (lastStatus != event.status) {
     await updateContentStatus(event.token, event.type, event.status)
+  } else if(event.status === 'downloading') {
+    const progress = {};
+    progress[event.token] = event.value;
+    updateConnectedClients({}, progress);
   }
 }

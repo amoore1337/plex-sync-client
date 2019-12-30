@@ -8,7 +8,11 @@
       <v-icon dark medium>mdi-download</v-icon>
     </v-btn>
     <div v-if="status === 'in-progress'">
-      <infinite-loading></infinite-loading>
+      <div v-if="progress" class="progress-meter">
+        <v-icon color="light-blue lighten-1">mdi-progress-download</v-icon>
+        <span>{{progress}}%</span>
+      </div>
+      <infinite-loading v-else></infinite-loading>
     </div>
   </div>
 </template>
@@ -27,6 +31,7 @@ type IDownloadStatus = 'completed' | 'incomplete' | 'not-downloaded' | 'in-progr
 })
 export default class TvGrid extends Vue {
   @Prop() private status!: IDownloadStatus;
+  @Prop() private progress!: number;
   @Prop() private downloadable!: boolean;
 
   private get showDownloadButton() {
@@ -74,6 +79,11 @@ export default class TvGrid extends Vue {
         border-color: $green;
         background-color: $green-lighten-1;
       }
+    }
+
+    .progress-meter {
+      display: flex;
+      align-items: center;
     }
   }
 </style>

@@ -6,7 +6,7 @@
         <td :style="{flex: 40}">{{movie.name}}</td>
         <td :style="{flex: 30}">{{movie.size | numFormat('0.0b') }}</td>
         <td :style="{flex: 30}">
-          <download-indicator :status="movie.status"></download-indicator>
+          <download-indicator :status="movie.status" :progress="progressForMovie(movie.token)"></download-indicator>
         </td>
       </grid-row>
     </grid>
@@ -43,7 +43,7 @@ import DownloadIndicator from '@/components/DownloadIndicator.vue';
 import RemainingSpaceIndicator from '@/components/RemainingSpaceIndicator.vue';
 import { fileSystemService, IFileSystemStats } from '@/services/file-system.service';
 import { downloadContentService } from '@/services/download-content.service';
-import { orderBy } from 'lodash';
+import { orderBy, find } from 'lodash';
 
 interface ISortCol {
   value: string;
@@ -61,6 +61,7 @@ interface ISortCol {
 export default class MoviesGrid extends Vue {
   @Prop() private movies!: any[];
   @Prop() private loading!: boolean;
+  @Prop() private progress!: any[];
 
   private showDownloadDialog = false;
   private selectedMovie: any = {};
@@ -73,6 +74,13 @@ export default class MoviesGrid extends Vue {
 
   private get sortedMovies() {
     return orderBy(this.movies, this.sortCol.value, this.sortCol.direction);
+  }
+
+  private progressForMovie(token: string) {
+    const progress = find(this.progress, { token });
+    if (progress) {
+      return progress.progress;
+    }
   }
 
   private onDownloadRequested(movie: any) {
