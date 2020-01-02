@@ -24,7 +24,14 @@ comm.interceptors.request.use(async config => {
   config.headers.Authorization = `Bearer ${oauthToken}`;
   config.headers.Client_Id = managerConfig.client_id;
   return config;
-}, err => Promise.reject(err));
+}, err => {
+    if (err.config && err.response && err.response.status === 401) {
+      oauthToken = await fetchAccessTokenForManager();
+      error.config.headers.Authorization = `Bearer ${oauthToken}`;
+      return axios.request(config);
+    }
+    return Promise.reject(err);
+});
 
 exports.fetchAvailableShows = async function () {
   const hostname = await getManagerDomain();
