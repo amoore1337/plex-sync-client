@@ -24,7 +24,7 @@ comm.interceptors.request.use(async config => {
   config.headers.Authorization = `Bearer ${oauthToken}`;
   config.headers.Client_Id = managerConfig.client_id;
   return config;
-}, err => {
+}, async err => {
     if (err.config && err.response && err.response.status === 401) {
       oauthToken = await fetchAccessTokenForManager();
       error.config.headers.Authorization = `Bearer ${oauthToken}`;
