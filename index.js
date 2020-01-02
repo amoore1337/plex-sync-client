@@ -1,6 +1,7 @@
 const server = require('./app/app.js');
 const config = require('nconf');
 const winston = require('winston');
+const path = require('path');
 
 // Load Environment variables from .env file
 require('dotenv').config();
@@ -14,10 +15,19 @@ const consoleFormat = winston.format.printf(({ timestamp, level, message, meta }
   return `[${level} - ${timestamp}] > ${message}`;
 });
 
+let transports = [];
+
+if (config.get('NODE_ENV') === 'prod') {
+  transports.push(new winston.transports.File({
+    filename: path.join(__dirname, 'combined.log'),
+    level: 'info',
+  }));
+} else {
+  transports.push(new winston.transports.Console());
+}
+
 const logger = winston.createLogger({
-  transports: [
-    new winston.transports.Console()
-  ],
+  transports,
   format: winston.format.combine(
     winston.format.errors({ stack: true }),
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
