@@ -16,7 +16,6 @@ let oauthToken = '';
 const comm = axios.create();
 
 comm.interceptors.request.use(async config => {
-  console.log(config);
   const managerConfig = await getManagerConfig();
   if (!managerConfig) { return Promise.reject('No Client configured.'); }
 
