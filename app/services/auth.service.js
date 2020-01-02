@@ -1,4 +1,5 @@
 const axios = require('axios');
+const logger = require('winston');
 const { getManagerConfig } = require('./manager-config.service');
 
 
@@ -14,7 +15,7 @@ const fetchAccessTokenForManager = async function () {
 
     return response.data.access_token;
   } catch (error) {
-    console.error(error);
+    logger.error(error);
   }
 }
 

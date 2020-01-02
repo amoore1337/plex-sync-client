@@ -2,6 +2,7 @@ const { getExistingMoviesMap, getExistingTvShowsMap } = require('./file.service'
 const { database, insertQuery, updateQuery, findOrCreate } = require('../db/db.helper');
 const { io } = require('../socket');
 const { find, isEmpty } = require('lodash');
+const logger = require('winston');
 
 // TODO: Now that this only the plural version of the type,
 // find lib to pluralize instead of this map.
@@ -41,7 +42,7 @@ exports.updateContentStatus = async function(token, type, status) {
     await updatePendingDownloadRecord(token, status);
     await updateContent(token, type, status);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
   }
 }
 
@@ -60,7 +61,7 @@ exports.completeContent = async function(token, type) {
 
     updateConnectedClients({ token, type });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
   }
 }
 
@@ -70,7 +71,7 @@ exports.deletePendingQueue = async function() {
     db = await database();
     await db.run('DELETE FROM pending_content_requests');
   } catch (error) {
-    console.error(error);
+    logger.error(error);
   }
 }
 

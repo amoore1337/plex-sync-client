@@ -1,5 +1,6 @@
 const { database, insertQuery, updateQuery } = require('../db/db.helper');
 const axios = require('axios');
+const logger = require('winston');
 
 let PLEX_CLIENT;
 
@@ -30,7 +31,7 @@ exports.savePlexConfig = async function (hostname, token) {
     }
 
   } catch (error) {
-    console.error(error);
+    logger.error(error);
   }
 }
 
@@ -47,7 +48,7 @@ exports.fetchPlexSections = fetchPlexSections;
 exports.refreshPlexSection = refreshPlexSection;
 
 // According to Plex, type can be 'movie' or 'show'
-exports.refreshPlexLibraryForType = async function(type) {
+exports.refreshPlexLibraryForType = async function (type) {
   const sections = await fetchPlexSections();
   sections.MediaContainer.Directory.forEach(async section => {
     if (section.type == type) {
@@ -62,7 +63,7 @@ async function fetchPlexSections() {
     response = await axios.get(`${plexClient.hostname}/library/sections?X-Plex-Token=${plexClient.token}`);
     return response.data;
   } catch (error) {
-    console.error(error);
+    logger.error(error);
   }
 }
 
@@ -72,7 +73,7 @@ async function refreshPlexSection(sectionId) {
     response = await axios.get(`${plexClient.hostname}/library/sections/${sectionId}/refresh?X-Plex-Token=${plexClient.token}`);
     return response.data;
   } catch (error) {
-    console.error(error);
+    logger.error(error);
   }
 }
 
@@ -85,6 +86,6 @@ async function getPlexConfig() {
     // There should only be a single manager config:
     return await db.get('SELECT * FROM plex_configs');
   } catch (error) {
-    console.error(error)
+    logger.error(error)
   }
 }

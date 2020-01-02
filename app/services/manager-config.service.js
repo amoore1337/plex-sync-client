@@ -1,4 +1,5 @@
 const { database, insertQuery, updateQuery } = require('../db/db.helper');
+const logger = require('winston');
 
 let MANAGER_CLIENT;
 
@@ -30,7 +31,7 @@ exports.saveManagerConfig = async function (hostname, clientId, clientSecret) {
     }
 
   } catch (error) {
-    console.error(error);
+    logger.error(error);
   }
 }
 
@@ -51,6 +52,6 @@ async function getManagerConfig() {
     // There should only be a single manager config:
     return await db.get('SELECT * FROM manager_configs');
   } catch (error) {
-    console.error(error)
+    logger.error(error)
   }
 }

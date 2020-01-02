@@ -7,7 +7,6 @@ const { initIo } = require('./socket');
 const cron = require('node-cron');
 const contentScan = require('./workers/content-scan');
 const { runMigrations } = require('./db/db.helper');
-const { fetchAccessTokenForManager } = require('./services/auth.service');
 const { deletePendingQueue, updateConnectedClients } = require('./services/content-state-manager.service');
 
 let app;
@@ -22,20 +21,7 @@ module.exports = async (callback) => {
   app.use(bodyParser.urlencoded({ extended: true }));
   app.use(bodyParser.json({ type: '*/*' }));
 
-  app.use(expressWinston.logger({
-    transports: [
-      new logger.transports.Console()
-    ],
-    format: logger.format.combine(
-      logger.format.colorize(),
-      logger.format.json()
-    ),
-    meta: false,
-    msg: "HTTP {{req.method}} {{req.url}}",
-    expressFormat: true,
-    colorize: false,
-    ignoreRoute: function (req, res) { return false; }
-  }));
+  app.use(expressWinston.logger({ winstonInstance: logger, meta: false, msg: "HTTP {{req.method}} {{req.url}}" }));
 
   // Run any pending migrations when the app starts up:
   try {
@@ -49,7 +35,7 @@ module.exports = async (callback) => {
     await deletePendingQueue();
 
   } catch (error) {
-    console.error(error);
+    logger.error(error);
   }
 
   // Run every 3 hours:

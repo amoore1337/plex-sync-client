@@ -1,4 +1,5 @@
 const { database } = require('../db/db.helper');
+const logger = require('winston');
 
 exports.getAvailableTvShows = async function () {
   const db = await database();
@@ -22,7 +23,7 @@ async function getSeasonsForShow(showToken) {
     db = await database();
     return db.all(`SELECT * FROM remote_seasons WHERE show_token = "${showToken}"`);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
   }
 }
 
@@ -32,6 +33,6 @@ async function getEpisodesForSeason(seasonToken) {
     db = await database();
     return db.all(`SELECT * FROM remote_episodes WHERE season_token = "${seasonToken}"`);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
   }
 }

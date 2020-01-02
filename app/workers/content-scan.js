@@ -2,10 +2,10 @@ const { getExistingMoviesMap, getExistingTvShowsMap } = require('../services/fil
 const { fetchAvailableMovies, fetchAvailableShows } = require('../services/manager-comm.service');
 const { database, sanitizedQueryValues, createOrUpdate } = require('../db/db.helper');
 const { find, map, difference } = require('lodash');
-const moment = require('moment');
+const logger = require('winston');
 
 module.exports = async function() {
-  console.log('[SYNC] Syncing content with remote @ ', moment().format('MMMM Do YYYY, h:mm:ss a'));
+  logger.info('Syncing with remote manager...');
 
   try {
     const remoteMovies = await fetchAvailableMovies();
@@ -16,8 +16,7 @@ module.exports = async function() {
     const fsMovies = await getExistingMoviesMap();
     await syncMovies(fsMovies, remoteMovies);
   } catch (error) {
-    console.error('Unable to sync movies:');
-    console.error(error);
+    logger.error('Unable to sync movies:', error);
   }
 
   try {
@@ -31,8 +30,7 @@ module.exports = async function() {
     await syncSeasons(fsShows, remoteShows);
     await syncShows(fsShows, remoteShows);
   } catch (error) {
-    console.error('Unable to sync tv shows:');
-    console.error(error);
+    logger.error('Unable to sync tv shows:', error);
   }
 }
 

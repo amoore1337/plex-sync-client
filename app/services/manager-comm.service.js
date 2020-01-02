@@ -10,11 +10,13 @@ const {
   updateConnectedClients,
 } = require('./content-state-manager.service');
 const { refreshPlexLibraryForType } = require('./plex-comm.service');
+const logger = require('winston');
 
 let oauthToken = '';
 const comm = axios.create();
 
 comm.interceptors.request.use(async config => {
+  console.log(config);
   const managerConfig = await getManagerConfig();
   if (!managerConfig) { return Promise.reject('No Client configured.'); }
 
@@ -67,7 +69,7 @@ exports.downloadContent = async function (token, type) {
     lastStatus = event.status;
   });
 
-  worker.on('error', (err) => console.error(err));
+  worker.on('error', (err) => logger.error(err));
 
   worker.on('exit', async statusCode => {
     if (statusCode === 0) {
@@ -77,7 +79,7 @@ exports.downloadContent = async function (token, type) {
         const plexType = ['show', 'season', 'episode'].indexOf(type) > -1 ? 'show' : 'movie';
         await refreshPlexLibraryForType(plexType);
       } catch (error) {
-        console.error(error)
+        logger.error(error)
       }
     }
   });
